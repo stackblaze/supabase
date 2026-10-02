@@ -22,3 +22,13 @@ jobs:
         run: |
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libatomic1
           echo "runner=$(hostname) libatomic=$(ldconfig -p | grep -c libatomic.so.1)"
+      # actions/checkout's cone-mode sparse checkout needs git >= 2.37 (older
+      # git defaults to non-cone and drops root files such as package.json,
+      # so pnpm/action-setup finds no packageManager). Ubuntu 22.04 ships 2.34.
+      - name: Upgrade git (git-core PPA)
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends software-properties-common
+          sudo add-apt-repository -y ppa:git-core/ppa
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends git
+          echo "runner=$(hostname) git=$(git --version)"
