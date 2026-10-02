@@ -1,9 +1,9 @@
 import type { Dirent } from 'node:fs'
-import { readdir, stat } from 'node:fs/promises'
+import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { FunctionArtifact, FunctionFileEntry } from './types'
+import { FunctionArtifact, FunctionFileEntry, FunctionFileInput } from './types'
 
 export class FileSystemFunctionsArtifactStore {
   constructor(private folderPath: string) {}
@@ -56,6 +56,53 @@ export class FileSystemFunctionsArtifactStore {
     )
 
     return fileEntries
+  }
+
+  /**
+   * Write a function's files under `<folder>/<slug>`, replacing files of the
+   * same name and leaving others in place. Returns false for a slug that is
+   * not a plain folder name (or the `main` router); throws for a file path
+   * that would land outside the function folder.
+   */
+  async writeFunction(slug: string, files: FunctionFileInput[]): Promise<boolean> {
+    const functionFolderPath = this.folderForSlug(slug)
+    if (!functionFolderPath || files.length === 0) return false
+
+    const targets = files.map((file) => {
+      const absolutePath = path.resolve(functionFolderPath, file.relativePath)
+      if (
+        path.isAbsolute(file.relativePath) ||
+        !absolutePath.startsWith(functionFolderPath + path.sep)
+      ) {
+        throw new Error(`Invalid file path: ${file.relativePath}`)
+      }
+      return { absolutePath, content: file.content }
+    })
+
+    for (const target of targets) {
+      await mkdir(path.dirname(target.absolutePath), { recursive: true })
+      await writeFile(target.absolutePath, target.content)
+    }
+    return true
+  }
+
+  /** Remove `<folder>/<slug>`. Returns false when there was nothing to remove. */
+  async deleteFunction(slug: string): Promise<boolean> {
+    const functionFolderPath = this.folderForSlug(slug)
+    if (!functionFolderPath) return false
+    try {
+      await stat(functionFolderPath)
+    } catch {
+      return false
+    }
+    await rm(functionFolderPath, { recursive: true, force: true })
+    return true
+  }
+
+  /** Absolute folder for a slug; undefined unless the slug is a plain folder name. */
+  private folderForSlug(slug: string): string | undefined {
+    if (slug === 'main' || !/^[A-Za-z0-9_-]+$/.test(slug)) return
+    return path.resolve(this.folderPath, slug)
   }
 }
 

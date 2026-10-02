@@ -246,7 +246,7 @@ export const EdgeFunctionsIndexPageWrapper = ({ children }: PropsWithChildren) =
                 Examples
               </a>
             </Button>
-            {IS_PLATFORM && <DeployEdgeFunctionButton />}
+            <DeployEdgeFunctionButton />
           </PageHeaderAside>
         </PageHeaderMeta>
       </PageHeader>

@@ -15,8 +15,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   switch (method) {
     case 'GET':
       return handleGet(req, res)
+    case 'DELETE':
+      return handleDelete(req, res)
     default:
-      res.setHeader('Allow', ['GET'])
+      res.setHeader('Allow', ['GET', 'DELETE'])
       res.status(405).json({ data: null, error: { message: `Method ${method} Not Allowed` } })
   }
 }
@@ -46,4 +48,16 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
   } satisfies EdgeFunctionsResponse
 
   return res.status(200).json(functionResponse)
+}
+
+const handleDelete = async (req: NextApiRequest, res: NextApiResponse) => {
+  const slugParam = req.query.slug
+  const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam
+  if (!slug)
+    return res.status(404).json({ error: { message: `Missing function 'slug' parameter` } })
+
+  const removed = await getFunctionsArtifactStore().deleteFunction(slug)
+  if (!removed) return res.status(404).json({ error: { message: `Function not found` } })
+
+  return res.status(200).json({})
 }
