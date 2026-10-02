@@ -1,0 +1,24 @@
+name: Runner prep
+# One-off host preparation for the self-hosted runners: pnpm/action-setup
+# falls back to the standalone @pnpm/exe binary when the host has no Node
+# >= 22.13, and that binary needs libatomic. Dispatch with as many parallel
+# jobs as there are runners so each one gets prepared.
+on:
+  workflow_dispatch:
+    inputs:
+      parallel:
+        description: 'Number of parallel jobs (one per runner)'
+        default: '2'
+        required: true
+
+jobs:
+  prep:
+    strategy:
+      matrix:
+        slot: [1, 2]
+    runs-on: [self-hosted, us-east-1]
+    steps:
+      - name: Install libatomic1
+        run: |
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libatomic1
+          echo "runner=$(hostname) libatomic=$(ldconfig -p | grep -c libatomic.so.1)"
