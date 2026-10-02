@@ -329,6 +329,7 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
           {mode === 'email' ? (
             <button
               type="button"
+              tabIndex={0}
               className="underline transition hover:text-foreground"
               onClick={() => {
                 setError(undefined)
@@ -340,6 +341,7 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
           ) : (
             <button
               type="button"
+              tabIndex={0}
               className="underline transition hover:text-foreground"
               onClick={() => {
                 setError(undefined)
