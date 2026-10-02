@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { Button } from 'ui'
 
+import { SelfHostedSignInPage } from '@/components/interfaces/SignIn/SelfHostedSignIn'
 import { SignInForm } from '@/components/interfaces/SignIn/SignInForm'
 import { SignInOptions } from '@/components/interfaces/SignIn/SignInOptions'
 import { SignInWithExternalProvider } from '@/components/interfaces/SignIn/SignInWithExternalProvider'
@@ -122,4 +123,5 @@ SignInPage.getLayout = (page) => (
   </AuthenticationLayout>
 )
 
-export default SignInPage
+// Self-hosted Studio has no accounts; its sign-in is the dashboard password.
+export default IS_PLATFORM ? SignInPage : SelfHostedSignInPage
