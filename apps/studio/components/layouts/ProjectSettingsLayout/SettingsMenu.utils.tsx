@@ -61,6 +61,12 @@ export const useGenerateSettingsMenu = () => {
               : `/project/${ref}/settings/jwt/signing-keys`,
             items: [],
           },
+          {
+            name: 'Studio access',
+            key: 'studio-access',
+            url: `/project/${ref}/settings/studio-access`,
+            items: [],
+          },
           ...(showLogDrains
             ? [
                 {

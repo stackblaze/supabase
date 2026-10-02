@@ -4,6 +4,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import {
   createSessionToken,
   credentialsMatch,
+  readSessionToken,
   selfHostedLoginEnabled,
   SESSION_TTL_SECONDS,
   verifySessionToken,
@@ -58,21 +59,32 @@ describe('self-hosted sign-in session', () => {
 
   it('issues a token that verifies until it expires and not after', async () => {
     const now = Date.now()
-    const token = await createSessionToken(now)
+    const token = await createSessionToken({ kind: 'dashboard' }, now)
     expect(await verifySessionToken(token, now)).toBe(true)
     expect(await verifySessionToken(token, now + (SESSION_TTL_SECONDS - 1) * 1000)).toBe(true)
     expect(await verifySessionToken(token, now + (SESSION_TTL_SECONDS + 1) * 1000)).toBe(false)
   })
 
+  it('carries the identity, including non-ASCII emails', async () => {
+    expect(await readSessionToken(await createSessionToken())).toEqual({ kind: 'dashboard' })
+    const user = { kind: 'user' as const, sub: 'b4b2…', email: 'zoë@exämple.org' }
+    expect(await readSessionToken(await createSessionToken(user))).toEqual(user)
+  })
+
   it('rejects tampered, foreign and missing tokens', async () => {
     const token = await createSessionToken()
-    const [exp, sig] = token.split('.')
-    expect(await verifySessionToken(`${Number(exp) + 3600}.${sig}`)).toBe(false)
+    const [exp, payload, sig] = token.split('.')
+    expect(await verifySessionToken(`${Number(exp) + 3600}.${payload}.${sig}`)).toBe(false)
     expect(
-      await verifySessionToken(`${exp}.${sig.replace(/^./, (c) => (c === '0' ? '1' : '0'))}`)
+      await verifySessionToken(
+        `${exp}.${payload}.${sig.replace(/^./, (c) => (c === '0' ? '1' : '0'))}`
+      )
     ).toBe(false)
+    const other = await createSessionToken({ kind: 'user', sub: 'x', email: 'x@y.z' })
+    expect(await verifySessionToken(`${exp}.${other.split('.')[1]}.${sig}`)).toBe(false)
     expect(await verifySessionToken(undefined)).toBe(false)
     expect(await verifySessionToken('garbage')).toBe(false)
+    expect(await verifySessionToken(`${exp}.${sig}`)).toBe(false)
     process.env.DASHBOARD_PASSWORD = 'rotated'
     expect(await verifySessionToken(token)).toBe(false)
   })
