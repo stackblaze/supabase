@@ -78,7 +78,9 @@ jobs:
         env:
           # Default is 2 GB, increase to have less frequent OOM errors
           NODE_OPTIONS: '--max_old_space_size=3072'
-        run: pnpm run test:ci
+        # Our runners are slower than Blacksmith's; vitest's default 5s per
+        # test (x3 with retry) made unrelated UI tests flap. 30s is the cap.
+        run: pnpm run test:ci -- --testTimeout=30000 --hookTimeout=30000
         working-directory: ./apps/studio
       - name: Upload coverage artifact
         if: steps.filter.outputs.relevant == 'true'
