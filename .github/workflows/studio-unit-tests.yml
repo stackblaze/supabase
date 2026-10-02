@@ -27,7 +27,7 @@ permissions:
 jobs:
   test:
     # Uses larger hosted runner as it significantly decreases build times
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: [self-hosted, us-east-1]
     strategy:
       matrix:
         test_number: [1]
@@ -92,7 +92,7 @@ jobs:
     needs: test
     if: ${{ always() && needs.test.result == 'success' && needs.test.outputs.tests_ran == 'true' }}
     continue-on-error: true
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: [self-hosted, us-east-1]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
