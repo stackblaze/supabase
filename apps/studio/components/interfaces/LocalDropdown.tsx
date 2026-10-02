@@ -1,4 +1,4 @@
-import { FlaskConical, Settings } from 'lucide-react'
+import { FlaskConical, LogOut, Settings } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -20,6 +20,7 @@ import { ButtonTooltip } from '../ui/ButtonTooltip'
 import { useFeaturePreviewModal } from './App/FeaturePreview/FeaturePreviewContext'
 import { DevToolbarMenuGroup } from './DevToolbarMenuGroup'
 import { ProfileImage } from '@/components/ui/ProfileImage'
+import { useSelfHostedLoginEnabled } from '@/hooks/misc/useSelfHostedLoginEnabled'
 import { useTrack } from '@/lib/telemetry/track'
 import { useAppStateSnapshot } from '@/state/app-state'
 
@@ -35,6 +36,7 @@ export const LocalDropdown = ({
   const appStateSnapshot = useAppStateSnapshot()
   const { toggleFeaturePreviewModal } = useFeaturePreviewModal()
   const track = useTrack()
+  const selfHostedLoginEnabled = useSelfHostedLoginEnabled()
 
   return (
     <DropdownMenu
@@ -94,6 +96,22 @@ export const LocalDropdown = ({
             ))}
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
+        {selfHostedLoginEnabled && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                className="flex gap-2 cursor-pointer"
+                onSelect={() => {
+                  router.push('/sign-out')
+                }}
+              >
+                <LogOut size={14} strokeWidth={1.5} className="text-foreground-lighter" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )
