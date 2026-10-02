@@ -22,16 +22,12 @@ const LOGIN_API = `${BASE_PATH}/api/self-hosted/login`
 const MAGIC_LINK_API = `${BASE_PATH}/api/self-hosted/magic-link`
 const HOME = '/project/default'
 
-const emailSchema = z.object({
-  email: z.string().email('Enter a valid email'),
-  password: z.string().min(1, 'Password is required'),
-})
-const dashboardSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+const schema = z.object({
+  identifier: z.string().trim().min(1, 'Enter your email or username'),
   password: z.string().min(1, 'Password is required'),
 })
 
-type Mode = 'email' | 'dashboard'
+const isEmail = (value: string) => value.includes('@')
 
 async function postJson(url: string, body: unknown): Promise<{ ok: boolean; message?: string }> {
   const res = await fetch(url, {
@@ -66,15 +62,15 @@ function safeReturnTo(requested: unknown): string {
 
 /**
  * Sign-in for self-hosted Studio (STUDIO_SELF_HOSTED_LOGIN=true): the same
- * screen as the hosted dashboard's sign-in. People sign in as an Auth user
- * with Studio access (email + password, or a link from their inbox) or with
- * the gateway's dashboard credential. Without the flag the page goes
- * straight to the project, as upstream does.
+ * screen as the hosted dashboard's sign-in. One form: an email address signs
+ * in as an Auth user with Studio access, anything else is the gateway's
+ * dashboard username. Links from the inbox (magic link, recovery) land here
+ * too. Without the flag the page goes straight to the project, as upstream
+ * does.
  */
 export const SelfHostedSignInPage: NextPageWithLayout = () => {
   const router = useRouter()
   const [methods, setMethods] = useState<SelfHostedLoginMethods>()
-  const [mode, setMode] = useState<Mode>('email')
   const [passwordHidden, setPasswordHidden] = useState(true)
   const [error, setError] = useState<string>()
   const [linkPending, setLinkPending] = useState(false)
@@ -82,15 +78,11 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
 
   const returnTo = safeReturnTo(router.query.returnTo)
 
-  const emailForm = useForm<z.infer<typeof emailSchema>>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { email: '', password: '' },
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: { identifier: '', password: '' },
   })
-  const dashboardForm = useForm<z.infer<typeof dashboardSchema>>({
-    resolver: zodResolver(dashboardSchema),
-    defaultValues: { username: '', password: '' },
-  })
-  const isSubmitting = emailForm.formState.isSubmitting || dashboardForm.formState.isSubmitting
+  const isSubmitting = form.formState.isSubmitting
 
   useEffect(() => {
     let cancelled = false
@@ -101,7 +93,6 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
         return
       }
       setMethods(status.methods)
-      setMode(status.methods.email ? 'email' : 'dashboard')
     })
     return () => {
       cancelled = true
@@ -133,19 +124,13 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
     })
   }, [methods, returnTo, router])
 
-  const signInWithEmail: SubmitHandler<z.infer<typeof emailSchema>> = async (values) => {
+  const onSubmit: SubmitHandler<z.infer<typeof schema>> = async ({ identifier, password }) => {
     setError(undefined)
-    const result = await postJson(LOGIN_API, values)
-    if (result.ok) {
-      await router.replace(returnTo)
-      return
-    }
-    setError(result.message)
-  }
-
-  const signInWithDashboard: SubmitHandler<z.infer<typeof dashboardSchema>> = async (values) => {
-    setError(undefined)
-    const result = await postJson(LOGIN_API, values)
+    const body =
+      methods?.email && isEmail(identifier)
+        ? { email: identifier, password }
+        : { username: identifier, password }
+    const result = await postJson(LOGIN_API, body)
     if (result.ok) {
       await router.replace(returnTo)
       return
@@ -154,9 +139,9 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
   }
 
   const sendMagicLink = async () => {
-    const email = emailForm.getValues('email').trim()
+    const email = form.getValues('identifier').trim()
     if (!z.string().email().safeParse(email).success) {
-      emailForm.setError('email', { message: 'Enter your email first' })
+      form.setError('identifier', { message: 'Enter your email first' })
       return
     }
     setSendingLink(true)
@@ -172,188 +157,101 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
     return <p className="text-sm text-foreground-light">Signing you in…</p>
   }
 
-  const passwordToggle = (
-    <Button
-      type="button"
-      title={passwordHidden ? 'Show password' : 'Hide password'}
-      aria-label={passwordHidden ? 'Show password' : 'Hide password'}
-      className="absolute right-1 top-1 px-1.5"
-      icon={passwordHidden ? <Eye /> : <EyeOff />}
-      disabled={isSubmitting}
-      onClick={() => setPasswordHidden((prev) => !prev)}
-    />
-  )
+  const emailSignIn = methods.email
 
   return (
-    <div className="flex flex-col gap-5">
-      {mode === 'email' ? (
-        <Form {...emailForm}>
-          <form
-            method="POST"
-            className="flex flex-col gap-4"
-            onSubmit={emailForm.handleSubmit(signInWithEmail)}
-          >
-            <FormField
-              key="email"
-              name="email"
-              control={emailForm.control}
-              render={({ field }) => (
-                <FormItemLayout label="Email">
+    <Form {...form}>
+      <form method="POST" className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          key="identifier"
+          name="identifier"
+          control={form.control}
+          render={({ field }) => (
+            <FormItemLayout
+              label={emailSignIn ? 'Email or username' : 'Username'}
+              description={
+                emailSignIn
+                  ? 'Your Studio account email, or the dashboard username from the gateway'
+                  : undefined
+              }
+            >
+              <FormControl>
+                <Input
+                  type="text"
+                  autoComplete="username"
+                  {...field}
+                  placeholder={emailSignIn ? 'you@example.com' : 'supabase'}
+                  autoFocus
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+            </FormItemLayout>
+          )}
+        />
+        <div className="relative">
+          <FormField
+            key="password"
+            name="password"
+            control={form.control}
+            render={({ field }) => (
+              <FormItemLayout label="Password">
+                <div className="relative">
                   <FormControl>
                     <Input
-                      type="email"
-                      autoComplete="email"
+                      type={passwordHidden ? 'password' : 'text'}
+                      autoComplete="current-password"
                       {...field}
-                      placeholder="you@example.com"
-                      autoFocus
+                      placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
                       disabled={isSubmitting}
+                      className="pr-10"
                     />
                   </FormControl>
-                </FormItemLayout>
-              )}
-            />
-            <div className="relative">
-              <FormField
-                key="password"
-                name="password"
-                control={emailForm.control}
-                render={({ field }) => (
-                  <FormItemLayout label="Password">
-                    <div className="relative">
-                      <FormControl>
-                        <Input
-                          type={passwordHidden ? 'password' : 'text'}
-                          autoComplete="current-password"
-                          {...field}
-                          placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-                          disabled={isSubmitting}
-                          className="pr-10"
-                        />
-                      </FormControl>
-                      {passwordToggle}
-                    </div>
-                  </FormItemLayout>
-                )}
-              />
-              <Link
-                href="/forgot-password"
-                className="absolute top-0 right-0 text-sm text-foreground-lighter"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
+                  <Button
+                    type="button"
+                    title={passwordHidden ? 'Show password' : 'Hide password'}
+                    aria-label={passwordHidden ? 'Show password' : 'Hide password'}
+                    className="absolute right-1 top-1 px-1.5"
+                    icon={passwordHidden ? <Eye /> : <EyeOff />}
+                    disabled={isSubmitting}
+                    onClick={() => setPasswordHidden((prev) => !prev)}
+                  />
+                </div>
+              </FormItemLayout>
             )}
-            <Button variant="primary" block type="submit" size="large" loading={isSubmitting}>
-              Sign in
-            </Button>
-            <Button
-              type="button"
-              variant="text"
-              block
-              size="large"
-              className="text-foreground-light"
-              loading={sendingLink}
-              disabled={isSubmitting}
-              onClick={sendMagicLink}
+          />
+          {emailSignIn && (
+            <Link
+              href="/forgot-password"
+              className="absolute top-0 right-0 text-sm text-foreground-lighter"
             >
-              Email me a sign-in link
-            </Button>
-          </form>
-        </Form>
-      ) : (
-        <Form {...dashboardForm}>
-          <form
-            method="POST"
-            className="flex flex-col gap-4"
-            onSubmit={dashboardForm.handleSubmit(signInWithDashboard)}
-          >
-            <FormField
-              key="username"
-              name="username"
-              control={dashboardForm.control}
-              render={({ field }) => (
-                <FormItemLayout label="Username">
-                  <FormControl>
-                    <Input
-                      type="text"
-                      autoComplete="username"
-                      {...field}
-                      placeholder="supabase"
-                      autoFocus
-                      disabled={isSubmitting}
-                    />
-                  </FormControl>
-                </FormItemLayout>
-              )}
-            />
-            <FormField
-              key="password"
-              name="password"
-              control={dashboardForm.control}
-              render={({ field }) => (
-                <FormItemLayout label="Password">
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        type={passwordHidden ? 'password' : 'text'}
-                        autoComplete="current-password"
-                        {...field}
-                        placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-                        disabled={isSubmitting}
-                        className="pr-10"
-                      />
-                    </FormControl>
-                    {passwordToggle}
-                  </div>
-                </FormItemLayout>
-              )}
-            />
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
-            <Button variant="primary" block type="submit" size="large" loading={isSubmitting}>
-              Sign in
-            </Button>
-          </form>
-        </Form>
-      )}
-
-      {methods.email && methods.dashboard && (
-        <div className="self-center text-sm text-foreground-light">
-          {mode === 'email' ? (
-            <button
-              type="button"
-              tabIndex={0}
-              className="underline transition hover:text-foreground"
-              onClick={() => {
-                setError(undefined)
-                setMode('dashboard')
-              }}
-            >
-              Use the dashboard password instead
-            </button>
-          ) : (
-            <button
-              type="button"
-              tabIndex={0}
-              className="underline transition hover:text-foreground"
-              onClick={() => {
-                setError(undefined)
-                setMode('email')
-              }}
-            >
-              Sign in with your email instead
-            </button>
+              Forgot password?
+            </Link>
           )}
         </div>
-      )}
-    </div>
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <Button variant="primary" block type="submit" size="large" loading={isSubmitting}>
+          Sign in
+        </Button>
+        {emailSignIn && (
+          <Button
+            type="button"
+            variant="text"
+            block
+            size="large"
+            className="text-foreground-light"
+            loading={sendingLink}
+            disabled={isSubmitting}
+            onClick={sendMagicLink}
+          >
+            Email me a sign-in link
+          </Button>
+        )}
+      </form>
+    </Form>
   )
 }
 
