@@ -1,26 +1,42 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/router'
-import { FormEvent, useEffect, useState } from 'react'
-import { Button, Input } from 'ui'
+import { useEffect, useState } from 'react'
+import { useForm, type SubmitHandler } from 'react-hook-form'
+import { Button, Form, FormControl, FormField, Input } from 'ui'
+import { FormItemLayout } from 'ui-patterns/form/FormItemLayout/FormItemLayout'
+import z from 'zod'
 
 import { AuthenticationLayout } from '@/components/layouts/AuthenticationLayout'
+import { SignInLayout } from '@/components/layouts/SignInLayout/SignInLayout'
 import { BASE_PATH } from '@/lib/constants'
 import type { NextPageWithLayout } from '@/types'
 
 const LOGIN_API = `${BASE_PATH}/api/self-hosted/login`
 const HOME = '/project/default'
 
+const schema = z.object({
+  username: z.string().min(1, 'Username is required'),
+  password: z.string().min(1, 'Password is required'),
+})
+
 /**
- * Sign-in for self-hosted Studio (STUDIO_SELF_HOSTED_LOGIN=true): a
- * username/password form against DASHBOARD_USERNAME / DASHBOARD_PASSWORD.
- * Without the flag it behaves as before and goes straight to the project.
+ * Sign-in for self-hosted Studio (STUDIO_SELF_HOSTED_LOGIN=true): the same
+ * screen as the hosted dashboard's sign-in, with a username/password form
+ * checked against DASHBOARD_USERNAME / DASHBOARD_PASSWORD. Without the flag
+ * it behaves as before and goes straight to the project.
  */
 export const SelfHostedSignInPage: NextPageWithLayout = () => {
   const router = useRouter()
   const [enabled, setEnabled] = useState(false)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [passwordHidden, setPasswordHidden] = useState(true)
   const [error, setError] = useState<string>()
-  const [submitting, setSubmitting] = useState(false)
+
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: { username: '', password: '' },
+  })
+  const isSubmitting = form.formState.isSubmitting
 
   const requested = router.query.returnTo
   const returnTo =
@@ -43,9 +59,7 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
     }
   }, [router])
 
-  const onSubmit = async (event: FormEvent) => {
-    event.preventDefault()
-    setSubmitting(true)
+  const onSubmit: SubmitHandler<z.infer<typeof schema>> = async ({ username, password }) => {
     setError(undefined)
     const res = await fetch(LOGIN_API, {
       method: 'POST',
@@ -53,57 +67,92 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
       body: JSON.stringify({ username, password }),
     }).catch(() => undefined)
     if (res?.ok) {
-      router.replace(returnTo)
+      await router.replace(returnTo)
       return
     }
     setError(
       res?.status === 401 ? 'Invalid username or password' : 'Sign-in failed, please try again'
     )
-    setSubmitting(false)
   }
 
   if (!enabled) return null
 
   return (
-    <div className="flex min-h-full items-center justify-center p-6">
-      <form
-        onSubmit={onSubmit}
-        className="flex w-full max-w-sm flex-col gap-4 rounded-md border bg-surface-100 p-6"
-      >
-        <div>
-          <h1 className="text-xl text-foreground">Sign in to Studio</h1>
-          <p className="text-sm text-foreground-light">Supabase dashboard for this project.</p>
-        </div>
-        <label className="flex flex-col gap-1 text-sm text-foreground-light">
-          Username
-          <Input
-            type="text"
-            autoComplete="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoFocus
-            required
-            disabled={submitting}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-foreground-light">
-          Password
-          <Input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={submitting}
-          />
-        </label>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button block type="submit" size="large" loading={submitting} disabled={submitting}>
-          Continue
+    <Form {...form}>
+      <form method="POST" className="flex flex-col gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+        <FormField
+          key="username"
+          name="username"
+          control={form.control}
+          render={({ field }) => (
+            <FormItemLayout label="Username">
+              <FormControl>
+                <Input
+                  type="text"
+                  autoComplete="username"
+                  {...field}
+                  placeholder="supabase"
+                  autoFocus
+                  disabled={isSubmitting}
+                />
+              </FormControl>
+            </FormItemLayout>
+          )}
+        />
+
+        <FormField
+          key="password"
+          name="password"
+          control={form.control}
+          render={({ field }) => (
+            <FormItemLayout label="Password">
+              <div className="relative">
+                <FormControl>
+                  <Input
+                    type={passwordHidden ? 'password' : 'text'}
+                    autoComplete="current-password"
+                    {...field}
+                    placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+                    disabled={isSubmitting}
+                    className="pr-10"
+                  />
+                </FormControl>
+                <Button
+                  type="button"
+                  title={passwordHidden ? 'Show password' : 'Hide password'}
+                  aria-label={passwordHidden ? 'Show password' : 'Hide password'}
+                  className="absolute right-1 top-1 px-1.5"
+                  icon={passwordHidden ? <Eye /> : <EyeOff />}
+                  disabled={isSubmitting}
+                  onClick={() => setPasswordHidden((prev) => !prev)}
+                />
+              </div>
+            </FormItemLayout>
+          )}
+        />
+
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+
+        <Button variant="primary" block type="submit" size="large" loading={isSubmitting}>
+          Sign in
         </Button>
       </form>
-    </div>
+    </Form>
   )
 }
 
-SelfHostedSignInPage.getLayout = (page) => <AuthenticationLayout>{page}</AuthenticationLayout>
+SelfHostedSignInPage.getLayout = (page) => (
+  <AuthenticationLayout>
+    <SignInLayout
+      heading="Welcome back"
+      subheading="Sign in to Supabase Studio"
+      logoLinkToMarketingSite={true}
+    >
+      {page}
+    </SignInLayout>
+  </AuthenticationLayout>
+)
