@@ -1,6 +1,6 @@
+import { Readable } from 'node:stream'
 import type { components } from 'api-types'
 import { type NextApiRequest, type NextApiResponse } from 'next'
-import { Readable } from 'node:stream'
 
 import { apiWrapper } from '@/lib/api/apiWrapper'
 import { getFunctionsArtifactStore } from '@/lib/api/self-hosted/functions'

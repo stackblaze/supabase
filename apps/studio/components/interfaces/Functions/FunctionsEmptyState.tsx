@@ -79,8 +79,7 @@ export const FunctionsEmptyState = () => {
                 <h4 className="text-base text-foreground">AI Assistant</h4>
               </div>
               <p className="text-sm text-foreground-light mb-4 mt-1">
-                Let our AI assistant help you create functions. Perfect for kickstarting a
-                function.
+                Let our AI assistant help you create functions. Perfect for kickstarting a function.
               </p>
               <Button
                 onClick={() => {
