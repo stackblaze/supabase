@@ -9,6 +9,7 @@ import z from 'zod'
 
 import { AuthenticationLayout } from '@/components/layouts/AuthenticationLayout'
 import { SignInLayout } from '@/components/layouts/SignInLayout/SignInLayout'
+import { fetchSelfHostedLoginEnabled } from '@/hooks/misc/useSelfHostedLoginEnabled'
 import { BASE_PATH } from '@/lib/constants'
 import type { NextPageWithLayout } from '@/types'
 
@@ -46,14 +47,11 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
 
   useEffect(() => {
     let cancelled = false
-    fetch(LOGIN_API)
-      .then(async (res) => res.ok && (await res.json()).enabled === true)
-      .catch(() => false)
-      .then((on) => {
-        if (cancelled) return
-        if (on) setEnabled(true)
-        else router.replace(HOME)
-      })
+    fetchSelfHostedLoginEnabled().then((on) => {
+      if (cancelled) return
+      if (on) setEnabled(true)
+      else router.replace(HOME)
+    })
     return () => {
       cancelled = true
     }
