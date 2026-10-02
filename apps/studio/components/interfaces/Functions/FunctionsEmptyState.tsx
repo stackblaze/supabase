@@ -51,74 +51,72 @@ export const FunctionsEmptyState = () => {
         </CardHeader>
         <CardContent className="p-0 grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] divide-y md:divide-y-0 md:divide-x divide-default items-stretch">
           {/* Editor Option */}
-          {IS_PLATFORM && (
-            <>
-              <div className="p-8">
-                <div className="flex items-center gap-2">
-                  <Code strokeWidth={1.5} size={20} />
-                  <h4 className="text-base text-foreground">Via Editor</h4>
-                </div>
-                <p className="text-sm text-foreground-light mb-4 mt-1">
-                  Create and edit functions directly in the browser. Download to local at any time.
-                </p>
-                <Button
-                  onClick={() => {
-                    router.push(`/project/${ref}/functions/new`)
-                    track('edge_function_via_editor_button_clicked', {
-                      origin: 'no_functions_block',
-                    })
-                  }}
-                >
-                  Open Editor
-                </Button>
-              </div>
+          <div className="p-8">
+            <div className="flex items-center gap-2">
+              <Code strokeWidth={1.5} size={20} />
+              <h4 className="text-base text-foreground">Via Editor</h4>
+            </div>
+            <p className="text-sm text-foreground-light mb-4 mt-1">
+              Create and edit functions directly in the browser. Download to local at any time.
+            </p>
+            <Button
+              onClick={() => {
+                router.push(`/project/${ref}/functions/new`)
+                track('edge_function_via_editor_button_clicked', {
+                  origin: 'no_functions_block',
+                })
+              }}
+            >
+              Open Editor
+            </Button>
+          </div>
 
-              {/* AI Assistant Option */}
-              <div className="p-8">
-                <div className="flex items-center gap-2">
-                  <AiIconAnimation size={20} />
-                  <h4 className="text-base text-foreground">AI Assistant</h4>
-                </div>
-                <p className="text-sm text-foreground-light mb-4 mt-1">
-                  Let our AI assistant help you create functions. Perfect for kickstarting a
-                  function.
-                </p>
-                <Button
-                  onClick={() => {
-                    openSidebar(SIDEBAR_KEYS.AI_ASSISTANT)
-                    aiSnap.newChat({
-                      name: 'Create new edge function',
-                      initialInput: 'Create a new edge function that ...',
-                      suggestions: {
-                        title:
-                          'I can help you create a new edge function. Here are a few example prompts to get you started:',
-                        prompts: [
-                          {
-                            label: 'Stripe Payments',
-                            description:
-                              'Create a new edge function that processes payments with Stripe',
-                          },
-                          {
-                            label: 'Email with Resend',
-                            description: 'Create a new edge function that sends emails with Resend',
-                          },
-                          {
-                            label: 'PDF Generator',
-                            description:
-                              'Create a new edge function that generates PDFs from HTML templates',
-                          },
-                        ],
-                      },
-                    })
-                    track('edge_function_ai_assistant_button_clicked', {
-                      origin: 'no_functions_block',
-                    })
-                  }}
-                >
-                  Open Assistant
-                </Button>
+          {/* AI Assistant Option */}
+          {IS_PLATFORM && (
+            <div className="p-8">
+              <div className="flex items-center gap-2">
+                <AiIconAnimation size={20} />
+                <h4 className="text-base text-foreground">AI Assistant</h4>
               </div>
-            </>
+              <p className="text-sm text-foreground-light mb-4 mt-1">
+                Let our AI assistant help you create functions. Perfect for kickstarting a
+                function.
+              </p>
+              <Button
+                onClick={() => {
+                  openSidebar(SIDEBAR_KEYS.AI_ASSISTANT)
+                  aiSnap.newChat({
+                    name: 'Create new edge function',
+                    initialInput: 'Create a new edge function that ...',
+                    suggestions: {
+                      title:
+                        'I can help you create a new edge function. Here are a few example prompts to get you started:',
+                      prompts: [
+                        {
+                          label: 'Stripe Payments',
+                          description:
+                            'Create a new edge function that processes payments with Stripe',
+                        },
+                        {
+                          label: 'Email with Resend',
+                          description: 'Create a new edge function that sends emails with Resend',
+                        },
+                        {
+                          label: 'PDF Generator',
+                          description:
+                            'Create a new edge function that generates PDFs from HTML templates',
+                        },
+                      ],
+                    },
+                  })
+                  track('edge_function_ai_assistant_button_clicked', {
+                    origin: 'no_functions_block',
+                  })
+                }}
+              >
+                Open Assistant
+              </Button>
+            </div>
           )}
 
           {/* CLI Option */}
