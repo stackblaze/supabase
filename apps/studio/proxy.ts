@@ -14,7 +14,15 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon\\.ico|img/|fonts/|monaco-editor/).*)'],
 }
 
-const OPEN_PATHS = new Set(['/sign-in', '/api/self-hosted/login'])
+const OPEN_PATHS = new Set([
+  '/sign-in',
+  '/forgot-password',
+  '/reset-password',
+  '/api/self-hosted/login',
+  '/api/self-hosted/forgot-password',
+  '/api/self-hosted/magic-link',
+  '/api/self-hosted/reset-password',
+])
 const STATIC_FILE = /\.(?:png|svg|jpe?g|gif|ico|css|js|map|woff2?|ttf|txt|json|webmanifest)$/
 
 export async function proxy(request: NextRequest) {

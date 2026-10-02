@@ -1,7 +1,9 @@
 import Link from 'next/link'
 
 import { ForgotPasswordWizard } from '@/components/interfaces/SignIn/ForgotPasswordWizard'
+import { SelfHostedForgotPasswordPage } from '@/components/interfaces/SignIn/SelfHostedForgotPassword'
 import { ForgotPasswordLayout } from '@/components/layouts/SignInLayout/ForgotPasswordLayout'
+import { IS_PLATFORM } from '@/lib/constants'
 import type { NextPageWithLayout } from '@/types'
 
 const ForgotPasswordPage: NextPageWithLayout = () => {
@@ -30,4 +32,5 @@ ForgotPasswordPage.getLayout = (page) => (
   </ForgotPasswordLayout>
 )
 
-export default ForgotPasswordPage
+// Self-hosted Studio resets passwords through the deployment's own Auth.
+export default IS_PLATFORM ? ForgotPasswordPage : SelfHostedForgotPasswordPage

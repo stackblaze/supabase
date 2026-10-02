@@ -1,4 +1,4 @@
-import { FlaskConical, LogOut, Settings } from 'lucide-react'
+import { FlaskConical, LogOut, Settings, Users } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -21,6 +21,7 @@ import { useFeaturePreviewModal } from './App/FeaturePreview/FeaturePreviewConte
 import { DevToolbarMenuGroup } from './DevToolbarMenuGroup'
 import { ProfileImage } from '@/components/ui/ProfileImage'
 import { useSelfHostedLoginEnabled } from '@/hooks/misc/useSelfHostedLoginEnabled'
+import { useSelfHostedSession } from '@/hooks/misc/useSelfHostedSession'
 import { useTrack } from '@/lib/telemetry/track'
 import { useAppStateSnapshot } from '@/state/app-state'
 
@@ -37,6 +38,7 @@ export const LocalDropdown = ({
   const { toggleFeaturePreviewModal } = useFeaturePreviewModal()
   const track = useTrack()
   const selfHostedLoginEnabled = useSelfHostedLoginEnabled()
+  const selfHostedSession = useSelfHostedSession()
 
   return (
     <DropdownMenu
@@ -99,7 +101,21 @@ export const LocalDropdown = ({
         {selfHostedLoginEnabled && (
           <>
             <DropdownMenuSeparator />
+            {selfHostedSession?.kind === 'user' && (
+              <div
+                className="px-2 py-1 text-xs text-foreground-light truncate"
+                title={selfHostedSession.email}
+              >
+                {selfHostedSession.email}
+              </div>
+            )}
             <DropdownMenuGroup>
+              <DropdownMenuItem className="flex gap-2 cursor-pointer" asChild>
+                <Link href="/project/default/settings/studio-access">
+                  <Users size={14} strokeWidth={1.5} className="text-foreground-lighter" />
+                  Studio access
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem
                 className="flex gap-2 cursor-pointer"
                 onSelect={() => {
