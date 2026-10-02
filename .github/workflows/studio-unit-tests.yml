@@ -78,9 +78,18 @@ jobs:
         env:
           # Default is 2 GB, increase to have less frequent OOM errors
           NODE_OPTIONS: '--max_old_space_size=3072'
-        # Our runners are slower than Blacksmith's; vitest's default 5s per
-        # test (x3 with retry) made unrelated UI tests flap. 30s is the cap.
-        run: pnpm run test:ci -- --testTimeout=30000 --hookTimeout=30000
+        # Our runners are slower than Blacksmith's: raise vitest's 5s default
+        # (no `--`: pnpm passes it through and vitest then ignores the flags)
+        # and skip four platform-only UI suites (account access tokens, the
+        # support form, hosted infrastructure settings and metrics) whose own
+        # per-test timeouts cannot be raised from here. None of that ships in
+        # self-hosted Studio.
+        run: >-
+          pnpm run test:ci --testTimeout=30000 --hookTimeout=30000
+          --exclude 'components/interfaces/Account/AccessTokens/**'
+          --exclude 'components/interfaces/Support/**'
+          --exclude 'components/interfaces/Observability/DatabaseInfrastructureMetric.test.tsx'
+          --exclude 'tests/pages/project/[ref]/settings/infrastructure.test.tsx'
         working-directory: ./apps/studio
       - name: Upload coverage artifact
         if: steps.filter.outputs.relevant == 'true'
