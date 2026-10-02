@@ -153,7 +153,7 @@ function SearchV2Panel({ onResultSelect, onResultOpen }: SearchV2PanelProps) {
   }
 
   return (
-    <Command className="bg-transparent max-lg:min-h-0 max-lg:flex-1">
+    <Command shouldFilter={false} className="bg-transparent max-lg:min-h-0 max-lg:flex-1">
       <VisuallyHidden.VisuallyHidden>
         <DialogTitle>Search docs</DialogTitle>
         <DialogDescription>Search the Supabase documentation</DialogDescription>
@@ -212,7 +212,7 @@ function SearchV2Panel({ onResultSelect, onResultOpen }: SearchV2PanelProps) {
           <CommandEmpty>Something went wrong. Please try again.</CommandEmpty>
         )}
         {results.length > 0 && (
-          <CommandGroup forceMount className="pt-1.25">
+          <CommandGroup className="pt-1.25">
             {results.map((result) => (
               <SearchV2Result
                 key={result.path}
@@ -277,7 +277,6 @@ function SearchV2Result({
     <CommandItem
       asChild
       value={result.path}
-      forceMount
       onSelect={handleSelect}
       className="cursor-pointer rounded-md px-2 py-2 max-lg:px-4"
     >
