@@ -63,8 +63,9 @@ const handlePost = async (req: NextApiRequest, res: NextApiResponse) => {
   let written: boolean
   try {
     written = await store.writeFunction(slug, files)
-  } catch (error: any) {
-    return res.status(400).json({ error: { message: error?.message ?? 'Invalid file' } })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid file'
+    return res.status(400).json({ error: { message } })
   }
   if (!written) return res.status(400).json({ error: { message: `Invalid function slug` } })
 
