@@ -1,5 +1,5 @@
-// @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { webcrypto } from 'node:crypto'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   createSessionToken,
@@ -16,6 +16,11 @@ const ENV = [
   'DASHBOARD_PASSWORD',
   'PG_META_CRYPTO_KEY',
 ]
+
+// jsdom has no SubtleCrypto; the code under test only uses Web Crypto.
+beforeAll(() => {
+  if (!globalThis.crypto?.subtle) vi.stubGlobal('crypto', webcrypto)
+})
 
 describe('self-hosted sign-in session', () => {
   const saved: Record<string, string | undefined> = {}

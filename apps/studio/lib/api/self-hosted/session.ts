@@ -18,7 +18,7 @@ export function selfHostedLoginEnabled(): boolean {
 }
 
 // Tied to the password so changing it signs everyone out.
-function secretBytes(): Uint8Array {
+function secretBytes(): BufferSource {
   return new TextEncoder().encode(
     `${process.env.DASHBOARD_PASSWORD ?? ''}:${process.env.PG_META_CRYPTO_KEY ?? ''}`
   )

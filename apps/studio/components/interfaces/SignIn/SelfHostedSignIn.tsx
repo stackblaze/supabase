@@ -98,7 +98,7 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
           />
         </label>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button block htmlType="submit" size="large" loading={submitting} disabled={submitting}>
+        <Button block type="submit" size="large" loading={submitting} disabled={submitting}>
           Continue
         </Button>
       </form>
