@@ -1,0 +1,52 @@
+name: Build studio image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+
+# Cancel old builds on new commit for same branch
+concurrency:
+  group: studio-image-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: [self-hosted, us-east-1]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Image tag
+        id: ver
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2.10.0
+
+      - name: Build and push
+        uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6 # v3.3.1
+        with:
+          context: .
+          file: ./apps/studio/Dockerfile
+          target: production
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/stackblaze/supabase-studio:latest
+            ghcr.io/stackblaze/supabase-studio:sha-${{ steps.ver.outputs.short }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/stackblaze/supabase
+          build-args: |
+            NEXT_PUBLIC_STUDIO_AUTH_MODE=supabase
