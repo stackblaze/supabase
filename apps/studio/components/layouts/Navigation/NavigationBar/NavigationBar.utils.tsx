@@ -230,7 +230,9 @@ export const generateOtherRoutes = (
                 ? buildingUrl
                 : IS_PLATFORM
                   ? `/project/${ref}/observability`
-                  : `/project/${ref}/query-performance`),
+                  : // Straight to the page: the legacy /query-performance redirect drops
+                    // `ref` on client-side navigation and the page reports "Project not found".
+                    `/project/${ref}/observability/query-performance`),
             shortcutId: SHORTCUT_IDS.NAV_OBSERVABILITY,
           },
         ]
