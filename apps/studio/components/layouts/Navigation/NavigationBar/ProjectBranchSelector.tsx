@@ -6,7 +6,6 @@ import {
   PopoverContent,
   PopoverTrigger,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from 'ui'
 import { ShimmeringLoader } from 'ui-patterns/ShimmeringLoader'
@@ -15,6 +14,7 @@ import { getProjectBranchSelectorState } from './ProjectBranchSelector.utils'
 import { ProjectBranchSelectorPopover } from './ProjectBranchSelectorPopover'
 import { ProjectBranchSelectorSheet } from './ProjectBranchSelectorSheet'
 import { ProjectBranchSelectorTrigger } from './ProjectBranchSelectorTrigger'
+import { SelfHostedBranchSelector } from './SelfHostedBranchSelector'
 import { useBranchesQuery } from '@/data/branches/branches-query'
 import { useProjectDetailQuery } from '@/data/projects/project-detail-query'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
@@ -62,15 +62,7 @@ export function ProjectBranchSelector() {
     return <ShimmeringLoader className="w-[120px] ml-1 md:py-3" />
 
   if (!IS_PLATFORM) {
-    return (
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton className="grid flex-1 text-left text-sm leading-tight text-foreground">
-            <span className="truncate">{displayProject.name}</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    )
+    return <SelfHostedBranchSelector projectName={displayProject.name} />
   }
 
   const triggerProps = {
