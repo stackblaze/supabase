@@ -14,6 +14,7 @@ import { GenericSkeletonLoader } from 'ui-patterns/ShimmeringLoader'
 
 import { BackupsList } from '@/components/interfaces/Database/Backups/BackupsList'
 import DatabaseBackupsNav from '@/components/interfaces/Database/Backups/DatabaseBackupsNav'
+import { PlatformBackupsPage } from '@/components/interfaces/Database/Backups/SelfHosted/PlatformBackupsPage'
 import { DatabaseLayout } from '@/components/layouts/DatabaseLayout/DatabaseLayout'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import { AlertError } from '@/components/ui/AlertError'
@@ -23,7 +24,7 @@ import { NoPermission } from '@/components/ui/NoPermission'
 import { useBackupsQuery } from '@/data/database/backups-query'
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { useIsHighAvailability } from '@/hooks/misc/useSelectedProject'
-import { DOCS_URL } from '@/lib/constants'
+import { DOCS_URL, IS_PLATFORM } from '@/lib/constants'
 import type { NextPageWithLayout } from '@/types'
 
 const DatabaseScheduledBackups: NextPageWithLayout = () => {
@@ -134,4 +135,5 @@ DatabaseScheduledBackups.getLayout = (page) => (
   </DefaultLayout>
 )
 
-export default DatabaseScheduledBackups
+// Self-hosted Studio shows the platform's backups of its database instead.
+export default IS_PLATFORM ? DatabaseScheduledBackups : PlatformBackupsPage
