@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { databaseKeys } from './keys'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
-import { PROJECT_STATUS } from '@/lib/constants'
+import { IS_PLATFORM, PROJECT_STATUS } from '@/lib/constants'
 import type { ResponseError, UseCustomQueryOptions } from '@/types'
 
 export type SupamonitorEnabledVariables = {
@@ -16,6 +16,10 @@ export async function getSupamonitorEnabled({
   projectRef,
   connectionString,
 }: SupamonitorEnabledVariables) {
+  // supamonitor only exists on the hosted platform, and reading
+  // shared_preload_libraries needs pg_read_all_settings.
+  if (!IS_PLATFORM) return false
+
   const { result } = await executeSql<{ libraries: string }[]>({
     projectRef,
     connectionString,

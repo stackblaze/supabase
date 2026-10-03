@@ -628,9 +628,9 @@ select
         : safeSql``
     }
   from pg_stat_statements as statements
-    inner join pg_authid as auth on statements.userid = auth.oid
+    inner join pg_roles as auth on statements.userid = auth.oid
   -- skip queries that were never actually executed
-  WHERE statements.calls > 0 ${where ? rewriteWhereToAnd(where) : safeSql``}
+  WHERE statements.calls > 0 and statements.dbid = (select oid from pg_database where datname = current_database()) ${where ? rewriteWhereToAnd(where) : safeSql``}
   ${orderBy || safeSql`order by statements.calls desc`}
   limit 20`,
       },
@@ -649,7 +649,7 @@ set search_path to public, extensions;
 -- compute total time once up front so we don't need a window function over all rows
 with grand_total as (
   select coalesce(nullif(sum(total_exec_time + total_plan_time), 0), 1) as v
-  from pg_stat_statements where calls > 0
+  from pg_stat_statements where calls > 0 and dbid = (select oid from pg_database where datname = current_database())
 )
 select
     auth.rolname,
@@ -683,9 +683,9 @@ select
         : safeSql``
     }
   from pg_stat_statements as statements
-    inner join pg_authid as auth on statements.userid = auth.oid
+    inner join pg_roles as auth on statements.userid = auth.oid
   -- skip queries that were never actually executed
-  WHERE statements.calls > 0 ${where ? rewriteWhereToAnd(where) : safeSql``}
+  WHERE statements.calls > 0 and statements.dbid = (select oid from pg_database where datname = current_database()) ${where ? rewriteWhereToAnd(where) : safeSql``}
   ${orderBy || safeSql`order by total_time desc`}
   limit 20`,
       },
@@ -736,9 +736,9 @@ select
         : safeSql``
     }
   from pg_stat_statements as statements
-    inner join pg_authid as auth on statements.userid = auth.oid
+    inner join pg_roles as auth on statements.userid = auth.oid
   -- skip queries that were never actually executed
-  WHERE statements.calls > 0 ${where ? rewriteWhereToAnd(where) : safeSql``}
+  WHERE statements.calls > 0 and statements.dbid = (select oid from pg_database where datname = current_database()) ${where ? rewriteWhereToAnd(where) : safeSql``}
   ${orderBy || safeSql`order by max_time desc`}
   limit 20`,
       },
@@ -783,7 +783,7 @@ select
         -- compute total time once up front so we don't need a window function over all rows
         with grand_total as (
           select coalesce(nullif(sum(total_exec_time + total_plan_time), 0), 1) as v
-          from pg_stat_statements where calls > 0
+          from pg_stat_statements where calls > 0 and dbid = (select oid from pg_database where datname = current_database())
         ),
         base as (
           select
@@ -811,9 +811,9 @@ select
               0
             ) as prop_total_time
           from pg_stat_statements as statements
-            inner join pg_authid as auth on statements.userid = auth.oid
+            inner join pg_roles as auth on statements.userid = auth.oid
           -- skip queries that were never actually executed
-          WHERE statements.calls > 0 ${where ? rewriteWhereToAnd(where) : safeSql``}
+          WHERE statements.calls > 0 and statements.dbid = (select oid from pg_database where datname = current_database()) ${where ? rewriteWhereToAnd(where) : safeSql``}
           ${orderBy || safeSql`order by total_time desc`}
           ${baseCteLimit !== null ? safeSql`limit ${literal(baseCteLimit)}` : safeSql``}
         ),
@@ -887,7 +887,7 @@ select
           ) || '%' as cache_hit_rate
         FROM pg_stat_statements as statements
         -- skip queries that were never actually executed
-        WHERE statements.calls > 0 ${where ? rewriteWhereToAnd(where) : safeSql``}
+        WHERE statements.calls > 0 and statements.dbid = (select oid from pg_database where datname = current_database()) ${where ? rewriteWhereToAnd(where) : safeSql``}
         ${orderBy || safeSql``}`,
       },
     },
