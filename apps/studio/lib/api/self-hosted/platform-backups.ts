@@ -43,7 +43,8 @@ export function platformBackupsInfo() {
   return { pipeline: e.pipeline, phase: e.phase, instance: e.instance }
 }
 
-async function call<T>(
+/** One authenticated request to the platform, as this deployment's app token. */
+export async function call<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   path: string,
   body?: unknown
