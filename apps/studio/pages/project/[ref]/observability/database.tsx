@@ -33,6 +33,7 @@ import { ShortcutTooltip } from '@/components/ui/ShortcutTooltip'
 import { analyticsKeys } from '@/data/analytics/keys'
 import { useDiskAttributesQuery } from '@/data/config/disk-attributes-query'
 import { useProjectDiskResizeMutation } from '@/data/config/project-disk-resize-mutation'
+import { useDatabaseFootprintQuery } from '@/data/database/database-footprint-query'
 import { useDatabaseSizeQuery } from '@/data/database/database-size-query'
 import { useMaxConnectionsQuery } from '@/data/database/max-connections-query'
 import { usePgbouncerConfigQuery } from '@/data/database/pgbouncer-config-query'
@@ -44,7 +45,7 @@ import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { useRefreshHandler, useReportDateRange } from '@/hooks/misc/useReportDateRange'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useIsHighAvailability, useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
-import { DOCS_URL } from '@/lib/constants'
+import { DOCS_URL, IS_PLATFORM } from '@/lib/constants'
 import { formatBytes } from '@/lib/helpers'
 import { useDatabaseSelectorStateSnapshot } from '@/state/database-selector'
 import { SHORTCUT_IDS } from '@/state/shortcuts/registry'
@@ -183,7 +184,16 @@ const DatabaseUsage = () => {
   const databaseSizeBytes = databaseSizeData ?? 0
   const currentDiskSize = project?.volumeSizeGb ?? 0
 
-  const { data: diskConfig } = useDiskAttributesQuery({ projectRef: project?.ref })
+  const { data: diskConfig } = useDiskAttributesQuery(
+    { projectRef: project?.ref },
+    { enabled: IS_PLATFORM }
+  )
+  // Self-hosted has no host metrics (CPU, memory, disk IO, network): report what this
+  // database itself uses.
+  const { data: footprint } = useDatabaseFootprintQuery(
+    { projectRef: project?.ref, connectionString: project?.connectionString },
+    { enabled: !IS_PLATFORM }
+  )
   const { data: maxConnections } = useMaxConnectionsQuery({
     projectRef: project?.ref,
     connectionString: project?.connectionString,
@@ -345,6 +355,7 @@ const DatabaseUsage = () => {
         }
       >
         {selectedDateRange &&
+          IS_PLATFORM &&
           REPORT_ATTRIBUTES.filter((chart) => !chart.hide).map((chart) => {
             const chartAvailable =
               !chart.entitlement ||
@@ -424,14 +435,25 @@ const DatabaseUsage = () => {
                       {formatBytes(databaseSizeBytes, 2, 'GB')}
                     </span>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm text-foreground-light">Provisioned disk size</p>
-                    <span className="text-lg font-semibold text-foreground">
-                      {currentDiskSize} GB
-                    </span>
-                  </div>
+                  {IS_PLATFORM ? (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm text-foreground-light">Provisioned disk size</p>
+                      <span className="text-lg font-semibold text-foreground">
+                        {currentDiskSize} GB
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm text-foreground-light">Connections</p>
+                      <span className="text-lg font-semibold text-foreground">
+                        {footprint
+                          ? `${footprint.connections} / ${footprint.connectionLimit}`
+                          : '--'}
+                      </span>
+                    </div>
+                  )}
 
-                  <div className="ml-auto">
+                  <div className={IS_PLATFORM ? 'ml-auto' : 'hidden'}>
                     {/* 
                       [Joshen] TODO: Check if this check is still relevant
                       The DiskSizeConfigurationModal is old and might be obsolete
