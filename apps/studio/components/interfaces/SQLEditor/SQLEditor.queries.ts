@@ -134,7 +134,7 @@ select
     statements.wal_bytes,
     statements.wal_records
   from pg_stat_statements as statements
-    inner join pg_authid as auth on statements.userid = auth.oid
+    inner join pg_roles as auth on statements.userid = auth.oid
   order by
     total_time desc
   limit
@@ -1079,7 +1079,7 @@ select
     statements.rows / statements.calls as avg_rows
 
   from pg_stat_statements as statements
-    inner join pg_authid as auth on statements.userid = auth.oid
+    inner join pg_roles as auth on statements.userid = auth.oid
   order by
     statements.calls desc
   limit
@@ -1101,7 +1101,7 @@ select
     statements.total_exec_time + statements.total_plan_time as total_time,
     to_char(((statements.total_exec_time + statements.total_plan_time)/sum(statements.total_exec_time + statements.total_plan_time) over()) * 100, 'FM90D0') || '%' as prop_total_time
   from pg_stat_statements as statements
-    inner join pg_authid as auth on statements.userid = auth.oid
+    inner join pg_roles as auth on statements.userid = auth.oid
   order by
     total_time desc
   limit
@@ -1132,7 +1132,7 @@ select
     -- mean_time,
     statements.rows / statements.calls as avg_rows
   from pg_stat_statements as statements
-    inner join pg_authid as auth on statements.userid = auth.oid
+    inner join pg_roles as auth on statements.userid = auth.oid
   order by
     max_time desc
   limit
