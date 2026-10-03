@@ -149,7 +149,7 @@ export const PlatformBackups = () => {
         `${API}/schedule`,
         {
           method: 'PUT',
-          body: JSON.stringify({ cadences, dbNames: schedule.data?.dbNames ?? null }),
+          body: JSON.stringify({ cadences }),
         },
         'Could not save the schedule'
       ),
@@ -372,11 +372,13 @@ export const PlatformBackups = () => {
                     </span>
                   </div>
                 ))}
-                {!schedule.data.configured && (
-                  <p className="text-xs text-foreground-lighter">
-                    No schedule saved yet; these are the platform defaults.
-                  </p>
-                )}
+                <p className="text-xs text-foreground-lighter">
+                  {schedule.data.configured
+                    ? (schedule.data.dbNames ?? []).length <= 1
+                      ? 'Covers this database.'
+                      : `Covers ${(schedule.data.dbNames ?? []).length} databases in this environment, including this one.`
+                    : 'No schedule saved yet; these are the platform defaults. Turning a cadence on saves a schedule that covers this database.'}
+                </p>
               </CardContent>
             </Card>
           )}
