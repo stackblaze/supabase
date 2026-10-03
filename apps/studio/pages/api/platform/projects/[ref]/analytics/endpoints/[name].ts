@@ -3,6 +3,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 
 import { apiWrapper } from '@/lib/api/apiWrapper'
 import { retrieveAnalyticsData } from '@/lib/api/self-hosted/logs'
+import { retrieveServiceHealth } from '@/lib/api/self-hosted/service-health'
 
 export default (req: NextApiRequest, res: NextApiResponse) => apiWrapper(req, res, handler)
 
@@ -18,11 +19,11 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       assert(typeof ref === 'string', 'Invalid or missing ref parameter')
       assert(typeof name === 'string', 'Invalid or missing name parameter')
 
-      const { data, error } = await retrieveAnalyticsData({
-        name,
-        params,
-        projectRef: ref,
-      })
+      // `service-health` only exists on the platform; self-hosted builds it from the logs.
+      const { data, error } =
+        name === 'service-health'
+          ? await retrieveServiceHealth({ params, projectRef: ref })
+          : await retrieveAnalyticsData({ name, params, projectRef: ref })
 
       if (data) {
         return res.status(200).json(data)
