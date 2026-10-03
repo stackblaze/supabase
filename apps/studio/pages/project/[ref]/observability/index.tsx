@@ -61,6 +61,11 @@ export const UserReportPage: NextPageWithLayout = () => {
     }
   )
 
+  // Self-hosted has no feature flags or saved reports to wait for.
+  if (!IS_PLATFORM && showOverview) {
+    return <ObservabilityOverview />
+  }
+
   // Wait for flags to load before rendering to avoid flashing wrong page
   if (!flagsLoaded || isLoading) {
     return <LogoLoader />
