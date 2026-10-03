@@ -8,6 +8,7 @@ import type {
 } from '@/components/ui/ProductMenu/ProductMenu.types'
 import { useProjectAddonsQuery } from '@/data/subscriptions/project-addons-query'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
+import { usePlatformBackupsEnabled } from '@/hooks/misc/usePlatformBackupsEnabled'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { IS_PLATFORM } from '@/lib/constants'
 import { SHORTCUT_IDS } from '@/state/shortcuts/registry'
@@ -25,6 +26,8 @@ export const useGenerateDatabaseMenu = (): ProductMenuGroup[] => {
   const { data: addons } = useProjectAddonsQuery({ projectRef: project?.ref })
 
   const pitrEnabled = addons?.selected_addons.some((addon) => addon.type === 'pitr') ?? false
+  // Self-hosted: the platform's backups of this database, when wired at deploy.
+  const platformBackupsEnabled = usePlatformBackupsEnabled()
   const columnLevelPrivileges = useIsColumnLevelPrivilegesEnabled()
   const enablePgReplicate = useIsETLPrivateAlpha()
 
@@ -129,7 +132,7 @@ export const useGenerateDatabaseMenu = (): ProductMenuGroup[] => {
             label: enablePgReplicate ? 'New' : undefined,
             shortcutId: SHORTCUT_IDS.NAV_DATABASE_REPLICATION,
           },
-        IS_PLATFORM && {
+        (IS_PLATFORM || platformBackupsEnabled) && {
           name: 'Backups',
           key: 'backups',
           url: pitrEnabled ? getDatabaseURL('backups/pitr') : getDatabaseURL('backups/scheduled'),

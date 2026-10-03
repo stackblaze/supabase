@@ -17,6 +17,7 @@ import { GenericSkeletonLoader } from 'ui-patterns/ShimmeringLoader'
 import DatabaseBackupsNav from '@/components/interfaces/Database/Backups/DatabaseBackupsNav'
 import { PITRNotice } from '@/components/interfaces/Database/Backups/PITR/PITRNotice'
 import { PITRSelection } from '@/components/interfaces/Database/Backups/PITR/PITRSelection'
+import { SelfHostedBackupsRedirect } from '@/components/interfaces/Database/Backups/SelfHosted/SelfHostedBackupsRedirect'
 import { DatabaseLayout } from '@/components/layouts/DatabaseLayout/DatabaseLayout'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import { AlertError } from '@/components/ui/AlertError'
@@ -29,7 +30,7 @@ import { useCheckEntitlements } from '@/hooks/misc/useCheckEntitlements'
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { useHighAvailability } from '@/hooks/misc/useHighAvailability'
 import { useIsOrioleDbInAws, useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
-import { DOCS_URL, PROJECT_STATUS } from '@/lib/constants'
+import { DOCS_URL, IS_PLATFORM, PROJECT_STATUS } from '@/lib/constants'
 import type { NextPageWithLayout } from '@/types'
 
 const DatabasePhysicalBackups: NextPageWithLayout = () => {
@@ -162,4 +163,5 @@ const PITR = () => {
   )
 }
 
-export default DatabasePhysicalBackups
+// Self-hosted Studio has one backups page (the platform's dumps); send it there.
+export default IS_PLATFORM ? DatabasePhysicalBackups : SelfHostedBackupsRedirect
