@@ -47,8 +47,13 @@ export const useGenerateObservabilityMenu = () => {
   const preservedQueryParams = usePreservedQueryParams()
   const { isSupamonitorEnabled } = useSupamonitorStatus()
 
-  const showOverview = useFlag('observabilityOverview')
+  const overviewFlag = useFlag('observabilityOverview')
   const storageSupported = useIsFeatureEnabled('project_storage:all')
+  const logsEnabled = useIsFeatureEnabled('logs:all')
+  // Self-hosted has no feature flags: the Overview and the log-backed reports show
+  // whenever the deployment has logs.
+  const showLogReports = IS_PLATFORM || logsEnabled
+  const showOverview = IS_PLATFORM ? overviewFlag : logsEnabled
 
   const baseUrl = `/project/${ref}/observability`
 
@@ -80,7 +85,7 @@ export const useGenerateObservabilityMenu = () => {
             shortcutId: SHORTCUT_IDS.NAV_OBSERVABILITY_QUERY_PERFORMANCE,
           },
         ]),
-    ...(IS_PLATFORM
+    ...(showLogReports
       ? [
           {
             name: 'API Gateway',
@@ -149,7 +154,7 @@ export const useGenerateObservabilityMenu = () => {
     },
   ]
 
-  if (IS_PLATFORM) {
+  if (showLogReports) {
     sections.push({
       title: 'PRODUCT',
       key: 'product-section',
