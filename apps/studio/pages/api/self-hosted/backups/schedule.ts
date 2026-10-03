@@ -1,7 +1,12 @@
 import { type NextApiRequest, type NextApiResponse } from 'next'
 
 import { apiWrapper } from '@/lib/api/apiWrapper'
-import { getSchedule, setSchedule, type DumpCadence } from '@/lib/api/self-hosted/platform-backups'
+import {
+  getSchedule,
+  platformBackupsInfo,
+  setSchedule,
+  type DumpCadence,
+} from '@/lib/api/self-hosted/platform-backups'
 
 // GET / PUT the environment's dump schedule (cadences + retention).
 export default function handlerWithErrorCatching(req: NextApiRequest, res: NextApiResponse) {
@@ -34,10 +39,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       }
       cadences.push({ id: c.id, enabled: c.enabled, retentionHours: c.retentionHours })
     }
-    const dbNames = Array.isArray(body.dbNames)
-      ? (body.dbNames as unknown[]).filter((n): n is string => typeof n === 'string')
-      : null
-    const result = await setSchedule({ cadences, dbNames })
+    // The environment's schedule names the databases it covers; this Studio
+    // speaks for one of them, so saving from here always keeps it included
+    // (the platform refuses a schedule that covers no database).
+    const { instance } = platformBackupsInfo()
+    const current = await getSchedule()
+    const dbNames = new Set<string>(
+      (Array.isArray(body.dbNames)
+        ? (body.dbNames as unknown[])
+        : (current.data?.dbNames ?? [])
+      ).filter((n): n is string => typeof n === 'string' && n.length > 0)
+    )
+    dbNames.add(instance)
+    const result = await setSchedule({ cadences, dbNames: [...dbNames] })
     if (result.error)
       return res
         .status(result.error.status >= 500 ? 502 : result.error.status)
