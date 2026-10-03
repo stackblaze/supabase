@@ -53,6 +53,8 @@ export const databaseKeys = {
     ['projects', projectRef, 'foreign-key-constraints', schema, options] as const,
   databaseSize: (projectRef: string | undefined) =>
     ['projects', projectRef, 'database-size'] as const,
+  databaseFootprint: (projectRef: string | undefined) =>
+    ['projects', projectRef, 'database-footprint'] as const,
   maxConnections: (projectRef: string | undefined) =>
     ['projects', projectRef, 'max-connections'] as const,
   pgbouncerStatus: (projectRef: string | undefined) =>

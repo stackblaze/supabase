@@ -15,8 +15,11 @@ import {
   INFRASTRUCTURE_METRIC_ATTRIBUTES,
 } from './DatabaseInfrastructureMetric'
 import { useInfraMonitoringAttributesQuery } from '@/data/analytics/infra-monitoring-query'
+import { useDatabaseFootprintQuery } from '@/data/database/database-footprint-query'
 import { useMaxConnectionsQuery } from '@/data/database/max-connections-query'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
+import { IS_PLATFORM } from '@/lib/constants'
+import { formatBytes } from '@/lib/helpers'
 
 type DatabaseInfrastructureSectionProps = {
   interval: '1hr' | '1day' | '7day'
@@ -79,6 +82,13 @@ export const DatabaseInfrastructureSection = ({
     connectionString: project?.connectionString,
   })
 
+  // Self-hosted has no host metrics: show what this database itself uses.
+  const footprintQuery = useDatabaseFootprintQuery(
+    { projectRef, connectionString: project?.connectionString },
+    { enabled: !IS_PLATFORM }
+  )
+  const footprint = footprintQuery.data
+
   // Generate database report URL with time range parameters
   const getDatabaseReportUrl = () => {
     const now = dayjs()
@@ -137,15 +147,48 @@ export const DatabaseInfrastructureSection = ({
           </MetricCard>
         </Link>
 
-        {(['connections', 'disk', 'diskIo', 'ram', 'cpu'] as const).map((metric) => (
-          <DatabaseInfrastructureMetric
-            key={metric}
-            metric={metric}
-            infraQuery={infraQuery}
-            href={databaseReportUrl}
-            maxConnectionsQuery={maxConnectionsQuery}
-          />
-        ))}
+        {IS_PLATFORM ? (
+          (['connections', 'disk', 'diskIo', 'ram', 'cpu'] as const).map((metric) => (
+            <DatabaseInfrastructureMetric
+              key={metric}
+              metric={metric}
+              infraQuery={infraQuery}
+              href={databaseReportUrl}
+              maxConnectionsQuery={maxConnectionsQuery}
+            />
+          ))
+        ) : (
+          <>
+            <Link href={`/project/${projectRef}/observability/connections`} className="block group">
+              <MetricCard isLoading={footprintQuery.isLoading}>
+                <MetricCardHeader linkTooltip="Go to database connections">
+                  <MetricCardLabel tooltip="Connections open to this database right now, against its connection limit">
+                    Connections
+                  </MetricCardLabel>
+                </MetricCardHeader>
+                <MetricCardContent>
+                  <MetricCardValue>
+                    {footprint ? `${footprint.connections}/${footprint.connectionLimit}` : '--'}
+                  </MetricCardValue>
+                </MetricCardContent>
+              </MetricCard>
+            </Link>
+            <Link href={databaseReportUrl} className="block group">
+              <MetricCard isLoading={footprintQuery.isLoading}>
+                <MetricCardHeader linkTooltip="Go to database report">
+                  <MetricCardLabel tooltip="Space this database takes on its Postgres server, including indexes">
+                    Database Size
+                  </MetricCardLabel>
+                </MetricCardHeader>
+                <MetricCardContent>
+                  <MetricCardValue>
+                    {footprint ? formatBytes(footprint.sizeBytes) : '--'}
+                  </MetricCardValue>
+                </MetricCardContent>
+              </MetricCard>
+            </Link>
+          </>
+        )}
       </div>
     </div>
   )
