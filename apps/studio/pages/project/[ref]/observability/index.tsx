@@ -12,6 +12,8 @@ import ObservabilityLayout from '@/components/layouts/ObservabilityLayout/Observ
 import ProductEmptyState from '@/components/to-be-cleaned/ProductEmptyState'
 import { useContentQuery } from '@/data/content/content-query'
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
+import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
+import { IS_PLATFORM } from '@/lib/constants'
 import { useProfile } from '@/lib/profile'
 import type { NextPageWithLayout } from '@/types'
 
@@ -21,7 +23,9 @@ export const UserReportPage: NextPageWithLayout = () => {
 
   const { profile } = useProfile()
   const { hasLoaded: flagsLoaded } = useFeatureFlags()
-  const showOverview = useFlag('observabilityOverview')
+  const overviewFlag = useFlag('observabilityOverview')
+  const logsEnabled = useIsFeatureEnabled('logs:all')
+  const showOverview = IS_PLATFORM ? overviewFlag : logsEnabled
   const [showCreateReportModal, setShowCreateReportModal] = useQueryState(
     'newReport',
     parseAsBoolean.withDefault(false).withOptions({ history: 'push', clearOnDefault: true })

@@ -228,7 +228,7 @@ export const generateOtherRoutes = (
               ref &&
               (isProjectBuilding
                 ? buildingUrl
-                : IS_PLATFORM
+                : IS_PLATFORM || logsEnabled
                   ? `/project/${ref}/observability`
                   : // Straight to the page: the legacy /query-performance redirect drops
                     // `ref` on client-side navigation and the page reports "Project not found".

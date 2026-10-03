@@ -120,12 +120,25 @@ describe('useGenerateObservabilityMenu', () => {
     expect(result.current.some((section) => section.title === 'PRODUCT')).toBe(true)
   })
 
-  it('excludes API Gateway and the PRODUCT section in self-hosted mode', () => {
+  it('includes the Overview, API Gateway and the PRODUCT section in self-hosted mode with logs', () => {
     mockIsPlatform.value = false
 
     const { result } = renderHook(() => useGenerateObservabilityMenu())
     const general = result.current.find((section) => section.title === 'GENERAL')
 
+    expect(general?.items.some((item) => item.key === 'observability')).toBe(true)
+    expect(general?.items.some((item) => item.key === 'api-overview')).toBe(true)
+    expect(result.current.some((section) => section.title === 'PRODUCT')).toBe(true)
+  })
+
+  it('excludes them in self-hosted mode without logs', () => {
+    mockIsPlatform.value = false
+    vi.mocked(useIsFeatureEnabled).mockReturnValue(false)
+
+    const { result } = renderHook(() => useGenerateObservabilityMenu())
+    const general = result.current.find((section) => section.title === 'GENERAL')
+
+    expect(general?.items.some((item) => item.key === 'observability')).toBe(false)
     expect(general?.items.some((item) => item.key === 'api-overview')).toBe(false)
     expect(result.current.some((section) => section.title === 'PRODUCT')).toBe(false)
     expect(result.current.length).toBe(1)
