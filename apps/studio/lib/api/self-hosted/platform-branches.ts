@@ -6,6 +6,7 @@
  * the screens were written for; the browser never sees the token.
  */
 import { call, platformBackupsConfigured, type PlatformResult } from './platform-backups'
+import { getProductionGitBranch, saveConnection } from './platform-github'
 import type { components } from '@/data/api'
 import { DEFAULT_PROJECT } from '@/lib/constants/api'
 
@@ -52,7 +53,7 @@ const base = () => {
 
 const studioUrl = (host: string | null | undefined) => (host ? `https://${host}` : undefined)
 
-function toNative(list: PlatformBranches): NativeBranch[] {
+function toNative(list: PlatformBranches, productionGitBranch?: string): NativeBranch[] {
   const selfRef = DEFAULT_PROJECT.ref
   const onMain = !list.current
   const mainRef = onMain ? selfRef : MAIN_REF
@@ -71,6 +72,7 @@ function toNative(list: PlatformBranches): NativeBranch[] {
     created_at: mainCreated,
     updated_at: mainCreated,
     with_data: false,
+    ...(productionGitBranch ? { git_branch: productionGitBranch } : {}),
     ...(onMain ? {} : { studio_url: studioUrl(list.parent.host) }),
   }
 
@@ -126,7 +128,7 @@ export async function getBranchingState(): Promise<PlatformResult<BranchingState
   const state: BranchingState = {
     enabled: true,
     isBranch: !!result.data.current,
-    branches: toNative(result.data),
+    branches: toNative(result.data, await getProductionGitBranch()),
   }
   cached = { at: Date.now(), state }
   return { data: state }
@@ -165,6 +167,29 @@ export async function findBranch(idOrRef: string): Promise<PlatformResult<Native
   const branch = state.data.branches.find((b) => b.id === idOrRef || b.project_ref === idOrRef)
   if (!branch) return { error: { status: 404, message: 'Branch not found' } }
   return { data: branch }
+}
+
+/**
+ * The only thing that can be changed on a branch here is the main branch's Git branch: the
+ * branch of the connected repository whose merges deploy to this deployment.
+ */
+export async function updateBranch(
+  idOrRef: string,
+  changes: { gitBranch?: string }
+): Promise<PlatformResult<NativeBranch>> {
+  const found = await findBranch(idOrRef)
+  if (found.error) return { error: found.error }
+  if (changes.gitBranch !== undefined) {
+    if (!found.data.is_default) {
+      return {
+        error: { status: 400, message: 'Only the main branch can be linked to a Git branch' },
+      }
+    }
+    const saved = await saveConnection({ productionBranch: changes.gitBranch || null })
+    if (saved.error) return { error: saved.error }
+    cached = undefined
+  }
+  return findBranch(idOrRef)
 }
 
 export async function deleteBranch(idOrRef: string): Promise<PlatformResult<{ message: 'ok' }>> {

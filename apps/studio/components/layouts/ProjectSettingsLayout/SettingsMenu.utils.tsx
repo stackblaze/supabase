@@ -67,6 +67,17 @@ export const useGenerateSettingsMenu = () => {
             url: `/project/${ref}/settings/studio-access`,
             items: [],
           },
+          // GitHub connection for branching, offered by the hosting platform per deployment.
+          ...(project?.is_branch_enabled
+            ? [
+                {
+                  name: 'Integrations',
+                  key: 'integrations',
+                  url: `/project/${ref}/settings/integrations`,
+                  items: [],
+                },
+              ]
+            : []),
           ...(showLogDrains
             ? [
                 {

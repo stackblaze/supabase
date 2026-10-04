@@ -1,5 +1,6 @@
 import { LOCAL_STORAGE_KEYS, safeLocalStorage } from 'common'
 
+import { BASE_PATH, IS_PLATFORM } from './constants'
 import { makeRandomString } from './helpers'
 
 const GITHUB_INTEGRATION_APP_NAME =
@@ -48,7 +49,11 @@ export function openInstallGitHubIntegrationWindow(
       : screen.height
 
   let windowUrl: string | undefined
-  if (type === 'install') {
+  if (!IS_PLATFORM) {
+    // Self-hosted: the hosting platform owns the GitHub App. Open the window first (inside
+    // the click) so it is not blocked, then send it to the install page.
+    windowUrl = 'about:blank'
+  } else if (type === 'install') {
     windowUrl = GITHUB_INTEGRATION_INSTALLATION_URL
   } else {
     const state = makeRandomString(32)
@@ -69,6 +74,15 @@ export function openInstallGitHubIntegrationWindow(
      left=${left}
      `
   )
+  if (newWindow && !IS_PLATFORM) {
+    fetch(`${BASE_PATH}/api/self-hosted/github/install-url`)
+      .then((res) => (res.ok ? res.json() : undefined))
+      .then((data: { url?: string } | undefined) => {
+        if (data?.url) newWindow.location.href = data.url
+        else newWindow.close()
+      })
+      .catch(() => newWindow.close())
+  }
   if (newWindow) {
     if (closeCallback) {
       // Poll to check if window is closed
