@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query'
 
 import { branchKeys } from './keys'
 import { get, handleError } from '@/data/fetchers'
-import { IS_PLATFORM } from '@/lib/constants'
 import type { ResponseError, UseCustomQueryOptions } from '@/types'
 
 export type BranchDiffVariables = {
@@ -56,6 +55,7 @@ export const useBranchDiffQuery = (
   useQuery<BranchDiffData, ResponseError>({
     queryKey: branchKeys.diff(projectRef, branchRef, pgdelta),
     queryFn: () => getBranchDiff({ branchRef, includedSchemas, pgdelta }),
-    enabled: IS_PLATFORM && enabled && Boolean(branchRef),
+    // Self-hosted: the hosting platform compares the two databases.
+    enabled: enabled && Boolean(branchRef),
     ...options,
   })
