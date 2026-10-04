@@ -7,6 +7,7 @@ import { generateBranchMenu } from './BranchLayout.utils'
 import { GitHubStatus } from '@/components/interfaces/Settings/Integrations/GithubIntegration/GitHubStatus'
 import { ProductMenu } from '@/components/ui/ProductMenu'
 import { withAuth } from '@/hooks/misc/withAuth'
+import { IS_PLATFORM } from '@/lib/constants'
 
 const BranchProductMenu = () => {
   const router = useRouter()
@@ -16,10 +17,12 @@ const BranchProductMenu = () => {
   return (
     <>
       <ProductMenu page={page} menu={generateBranchMenu(projectRef)} />
-      <div className="px-6">
-        <h3 className="text-sm font-mono text-foreground-lighter uppercase mb-3">Configure</h3>
-        <GitHubStatus />
-      </div>
+      {IS_PLATFORM && (
+        <div className="px-6">
+          <h3 className="text-sm font-mono text-foreground-lighter uppercase mb-3">Configure</h3>
+          <GitHubStatus />
+        </div>
+      )}
     </>
   )
 }

@@ -1,4 +1,5 @@
 import type { ProductMenuGroup } from '@/components/ui/ProductMenu/ProductMenu.types'
+import { IS_PLATFORM } from '@/lib/constants'
 
 export const generateBranchMenu = (ref: string): ProductMenuGroup[] => {
   return [
@@ -11,12 +12,17 @@ export const generateBranchMenu = (ref: string): ProductMenuGroup[] => {
           url: `/project/${ref}/branches`,
           items: [],
         },
-        {
-          name: 'Merge requests',
-          key: 'merge-requests',
-          url: `/project/${ref}/branches/merge-requests`,
-          items: [],
-        },
+        // Merge requests need the platform's schema diff, which self-hosted does not have.
+        ...(IS_PLATFORM
+          ? [
+              {
+                name: 'Merge requests',
+                key: 'merge-requests',
+                url: `/project/${ref}/branches/merge-requests`,
+                items: [],
+              },
+            ]
+          : []),
       ],
     },
   ]
