@@ -26,6 +26,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const gitBranch = req.body?.git_branch
     const updated = await updateBranch(id, {
       gitBranch: typeof gitBranch === 'string' ? gitBranch : undefined,
+      requestReview:
+        typeof req.body?.request_review === 'boolean' ? req.body.request_review : undefined,
     })
     if (updated.error) return fail(res, updated.error)
     return res.status(200).json(updated.data)

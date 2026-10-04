@@ -34,6 +34,7 @@ import { useGitHubConnectionsQuery } from '@/data/integrations/github-connection
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
+import { goToMergePage, mergePageHref } from '@/lib/branch-merge-page'
 import { DOCS_URL } from '@/lib/constants'
 import { useTrack } from '@/lib/telemetry/track'
 import type { NextPageWithLayout } from '@/types'
@@ -96,11 +97,8 @@ const MergeRequestsPage: NextPageWithLayout = () => {
     },
   })
 
-  const handleMarkBranchForReview = ({
-    project_ref: branchRef,
-    parent_project_ref: projectRef,
-    persistent,
-  }: Branch) => {
+  const handleMarkBranchForReview = (branch: Branch) => {
+    const { project_ref: branchRef, parent_project_ref: projectRef, persistent } = branch
     updateBranch(
       {
         branchRef,
@@ -120,7 +118,7 @@ const MergeRequestsPage: NextPageWithLayout = () => {
             { project: projectRef }
           )
 
-          router.push(`/project/${branchRef}/merge`)
+          goToMergePage(router, branch)
         },
       }
     )
@@ -211,7 +209,7 @@ const MergeRequestsPage: NextPageWithLayout = () => {
                           const isPR = branch.pr_number !== undefined
                           const rowLink = isPR
                             ? `https://github.com/${repo}/pull/${branch.pr_number}`
-                            : `/project/${branch.project_ref}/merge`
+                            : mergePageHref(branch)
                           return (
                             <BranchRow
                               isGithubConnected={isGithubConnected}
@@ -320,11 +318,8 @@ export const MergeRequestsPageWrapper = ({ children }: PropsWithChildren<{}>) =>
     },
   })
 
-  const handleMarkBranchForReview = ({
-    project_ref: branchRef,
-    parent_project_ref: projectRef,
-    persistent,
-  }: Branch) => {
+  const handleMarkBranchForReview = (branch: Branch) => {
+    const { project_ref: branchRef, parent_project_ref: projectRef, persistent } = branch
     updateBranch(
       {
         branchRef,
@@ -344,7 +339,7 @@ export const MergeRequestsPageWrapper = ({ children }: PropsWithChildren<{}>) =>
             { project: projectRef }
           )
 
-          router.push(`/project/${branchRef}/merge`)
+          goToMergePage(router, branch)
         },
       }
     )

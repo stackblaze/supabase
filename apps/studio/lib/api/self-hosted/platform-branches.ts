@@ -22,6 +22,8 @@ type PlatformBranch = {
   gitBranch?: string
   /** State of the latest run applying the repository's migrations to the branch. */
   migration?: 'none' | 'running' | 'passed' | 'failed'
+  /** When a merge request was opened for the branch. */
+  reviewRequestedAt?: string
 }
 
 const branchStatus = (ready: boolean, migration: PlatformBranch['migration']) => {
@@ -107,6 +109,7 @@ function toNative(list: PlatformBranches, productionGitBranch?: string): NativeB
       with_data: false,
       ...(branch.prNumber ? { pr_number: branch.prNumber } : {}),
       ...(branch.gitBranch ? { git_branch: branch.gitBranch } : {}),
+      ...(branch.reviewRequestedAt ? { review_requested_at: branch.reviewRequestedAt } : {}),
       ...(isSelf ? {} : { studio_url: studioUrl(branch.host) }),
     }
   })
@@ -187,12 +190,13 @@ export async function findBranch(idOrRef: string): Promise<PlatformResult<Native
 }
 
 /**
- * The only thing that can be changed on a branch here is the main branch's Git branch: the
- * branch of the connected repository whose merges deploy to this deployment.
+ * What can be changed here: the main branch's Git branch (the branch of the connected
+ * repository whose merges deploy to this deployment), and a branch's merge request, which
+ * is opened and closed.
  */
 export async function updateBranch(
   idOrRef: string,
-  changes: { gitBranch?: string }
+  changes: { gitBranch?: string; requestReview?: boolean }
 ): Promise<PlatformResult<NativeBranch>> {
   const found = await findBranch(idOrRef)
   if (found.error) return { error: found.error }
@@ -203,6 +207,16 @@ export async function updateBranch(
       }
     }
     const saved = await saveConnection({ productionBranch: changes.gitBranch || null })
+    if (saved.error) return { error: saved.error }
+    cached = undefined
+  }
+  if (changes.requestReview !== undefined) {
+    if (found.data.is_default) {
+      return { error: { status: 400, message: 'The main branch has no merge request' } }
+    }
+    const saved = await call<unknown>('PATCH', `${base()}/${encodeURIComponent(found.data.name)}`, {
+      reviewRequested: changes.requestReview,
+    })
     if (saved.error) return { error: saved.error }
     cached = undefined
   }
