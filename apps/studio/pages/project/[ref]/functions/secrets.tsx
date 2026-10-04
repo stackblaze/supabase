@@ -17,13 +17,16 @@ import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import EdgeFunctionsLayout from '@/components/layouts/EdgeFunctionsLayout/EdgeFunctionsLayout'
 import { DocsButton } from '@/components/ui/DocsButton'
 import { useDeploymentMode } from '@/hooks/misc/useDeploymentMode'
+import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { DOCS_URL, IS_PLATFORM } from '@/lib/constants'
 import type { NextPageWithLayout } from '@/types'
 
 const SecretsPage: NextPageWithLayout = () => {
   const { isCli, isSelfHosted } = useDeploymentMode()
+  // Self-hosted on a hosting platform: it keeps the secrets on the functions service.
+  const { data: project } = useSelectedProjectQuery()
 
-  if (!IS_PLATFORM) {
+  if (!IS_PLATFORM && !project?.is_platform_managed) {
     return (
       <PageContainer size="large">
         <PageSection>

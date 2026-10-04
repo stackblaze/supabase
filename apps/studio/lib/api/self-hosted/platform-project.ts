@@ -98,3 +98,23 @@ export function platformDatabase() {
     db_user: process.env.PGUSER || 'postgres',
   }
 }
+
+/** A secret of the deployment's functions: its name and the SHA-256 of its value. */
+export type PlatformSecret = { name: string; value: string }
+
+export async function getPlatformSecrets(): Promise<PlatformResult<PlatformSecret[]>> {
+  return call<PlatformSecret[]>('GET', `${base()}/secrets`)
+}
+
+/** Adds or replaces secrets; the platform restarts the functions service. */
+export async function setPlatformSecrets(
+  secrets: { name: string; value: string }[]
+): Promise<PlatformResult<PlatformSecret[]>> {
+  return call<PlatformSecret[]>('POST', `${base()}/secrets`, secrets)
+}
+
+export async function deletePlatformSecrets(
+  names: string[]
+): Promise<PlatformResult<PlatformSecret[]>> {
+  return call<PlatformSecret[]>('DELETE', `${base()}/secrets`, names)
+}
