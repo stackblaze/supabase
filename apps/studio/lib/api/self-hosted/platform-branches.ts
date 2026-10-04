@@ -114,6 +114,8 @@ const OFF: BranchingState = { enabled: false, isBranch: false, branches: [] }
 // answer from the platform serves them all for a few seconds.
 const CACHE_MS = 5_000
 let cached: { at: number; state: BranchingState } | undefined
+// Branch name by the platform's name of its primary app; merge runs are named after it.
+let primaries = new Map<string, string>()
 
 /** What the native screens need to know; "not offered" rather than an error when the platform or token cannot do branches. */
 export async function getBranchingState(): Promise<PlatformResult<BranchingState>> {
@@ -131,6 +133,7 @@ export async function getBranchingState(): Promise<PlatformResult<BranchingState
     branches: toNative(result.data, await getProductionGitBranch()),
   }
   cached = { at: Date.now(), state }
+  primaries = new Map(result.data.branches.map((b) => [b.primary, b.name]))
   return { data: state }
 }
 
@@ -202,4 +205,72 @@ export async function deleteBranch(idOrRef: string): Promise<PlatformResult<{ me
   if (removed.error) return { error: removed.error }
   cached = undefined
   return { data: { message: 'ok' } }
+}
+
+type PlatformDiff = {
+  id: string
+  state: 'running' | 'passed' | 'failed'
+  sql?: string
+  error?: string
+}
+
+// Stays under the gateway's request timeout; the query is asked again when it is not done by then.
+const DIFF_WAIT_MS = 45_000
+
+/** SQL that brings the main deployment's schema to the branch's; empty when they are equal. */
+export async function getBranchDiff(idOrRef: string): Promise<PlatformResult<string>> {
+  const found = await findBranch(idOrRef)
+  if (found.error) return { error: found.error }
+  if (found.data.is_default) return { data: '' }
+  const path = `${base()}/${encodeURIComponent(found.data.name)}/diff`
+  const until = Date.now() + DIFF_WAIT_MS
+  let result = await call<PlatformDiff>('GET', path)
+  while (!result.error && result.data.state === 'running' && Date.now() < until) {
+    result = await call<PlatformDiff>('GET', `${path}?id=${encodeURIComponent(result.data.id)}`)
+  }
+  if (result.error) return { error: result.error }
+  if (result.data.state === 'running') {
+    return { error: { status: 503, message: 'The comparison is still running, try again' } }
+  }
+  if (result.data.state === 'failed') {
+    return { error: { status: 502, message: result.data.error ?? 'The comparison failed' } }
+  }
+  return { data: result.data.sql ?? '' }
+}
+
+/** Starts merging a branch into the main deployment; the run is followed with getMergeRun. */
+export async function mergeBranch(
+  idOrRef: string
+): Promise<PlatformResult<{ workflow_run_id: string; message: 'ok' }>> {
+  const found = await findBranch(idOrRef)
+  if (found.error) return { error: found.error }
+  if (found.data.is_default) {
+    return { error: { status: 400, message: 'The main branch cannot be merged' } }
+  }
+  const started = await call<{ id: string }>(
+    'POST',
+    `${base()}/${encodeURIComponent(found.data.name)}/merge`
+  )
+  if (started.error) return { error: started.error }
+  return { data: { workflow_run_id: started.data.id, message: 'ok' } }
+}
+
+export type MergeRun = {
+  id: string
+  state: 'running' | 'passed' | 'failed'
+  createdAt: string | null
+  finishedAt: string | null
+  logs: string
+}
+
+export async function getMergeRun(runId: string): Promise<PlatformResult<MergeRun>> {
+  const state = await getBranchingState()
+  if (state.error) return { error: state.error }
+  const primary = [...primaries.keys()].find((p) => runId.startsWith(`${p}-merge-`))
+  const name = primary ? primaries.get(primary) : undefined
+  if (!name) return { error: { status: 404, message: 'Run not found' } }
+  return call<MergeRun>(
+    'GET',
+    `${base()}/${encodeURIComponent(name)}/runs/${encodeURIComponent(runId)}`
+  )
 }
