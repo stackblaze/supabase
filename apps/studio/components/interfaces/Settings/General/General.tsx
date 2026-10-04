@@ -130,7 +130,7 @@ export const General = () => {
               actions={<DocsButton href={`${DOCS_URL}/guides/local-development`} />}
             />
           )}
-          {isSelfHosted && (
+          {isSelfHosted && !project?.is_platform_managed && (
             <Admonition
               type="default"
               title="Self-hosted Supabase"
