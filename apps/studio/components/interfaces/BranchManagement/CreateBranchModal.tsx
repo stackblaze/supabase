@@ -125,7 +125,7 @@ export const CreateBranchModal = () => {
     isPending: isLoadingAuthorization,
     isSuccess: isSuccessAuthorization,
     isError: isErrorAuthorization,
-  } = useGitHubAuthorizationQuery()
+  } = useGitHubAuthorizationQuery({ enabled: IS_PLATFORM })
 
   const {
     data: connections,
@@ -135,12 +135,14 @@ export const CreateBranchModal = () => {
     isError: isErrorConnections,
   } = useGitHubConnectionsQuery(
     { organizationId: selectedOrg?.id },
-    { enabled: showCreateBranchModal }
+    { enabled: IS_PLATFORM && showCreateBranchModal }
   )
 
-  const isLoading = isLoadingAuthorization || isLoadingConnections
-  const isSuccess = isSuccessAuthorization && isSuccessConnections
-  const isError = isErrorAuthorization || isErrorConnections
+  // Self-hosted: the platform creates the branch; linking a Git branch comes with its own
+  // repository connection, so the GitHub and billing sections are not shown.
+  const isLoading = IS_PLATFORM && (isLoadingAuthorization || isLoadingConnections)
+  const isSuccess = IS_PLATFORM && isSuccessAuthorization && isSuccessConnections
+  const isError = IS_PLATFORM && (isErrorAuthorization || isErrorConnections)
   const error = authorizationError || connectionsError
 
   const { data: branches } = useBranchesQuery({ projectRef })
@@ -193,7 +195,9 @@ export const CreateBranchModal = () => {
       })
 
       setShowCreateBranchModal(false)
-      router.push(`/project/${data.project_ref}`)
+      // Self-hosted: the branch is a separate deployment that takes a few minutes to start;
+      // it is opened from the branch list once it is ready.
+      if (IS_PLATFORM) router.push(`/project/${data.project_ref}`)
     },
     onError: (error) => {
       toast.error(`Failed to create branch: ${error.message}`)
@@ -209,7 +213,7 @@ export const CreateBranchModal = () => {
   const isDisabled =
     !isFormValid ||
     !canCreateBranch ||
-    !isSuccessAddons ||
+    (IS_PLATFORM && !isSuccessAddons) ||
     (!!gitBranchName && !isSuccessConnections) ||
     isLoadingEntitlement ||
     !hasAccessToBranching ||
@@ -441,174 +445,184 @@ export const CreateBranchModal = () => {
               )}
             </DialogSection>
 
-            <DialogSectionSeparator />
+            {IS_PLATFORM && (
+              <>
+                <DialogSectionSeparator />
 
-            <DialogSection
-              padding="medium"
-              className={cn(
-                'flex flex-col gap-4',
-                promptPlanUpgrade && 'opacity-25 pointer-events-none'
-              )}
-            >
-              {withData && (
-                <div className="flex flex-row gap-4">
-                  <div>
-                    <figure className="w-10 h-10 rounded-md bg-info-200 border border-info-400 flex items-center justify-center">
-                      <DatabaseZap className="text-info" size={20} strokeWidth={2} />
-                    </figure>
-                  </div>
-                  <div className="flex flex-col gap-y-1">
-                    {isLoadingDiskAttr ? (
-                      <>
-                        <ShimmeringLoader className="w-32 h-5 py-0" />
-                        <ShimmeringLoader className="w-72 h-8 py-0" />
-                      </>
-                    ) : (
-                      <>
-                        {isErrorDiskAttr ? (
+                <DialogSection
+                  padding="medium"
+                  className={cn(
+                    'flex flex-col gap-4',
+                    promptPlanUpgrade && 'opacity-25 pointer-events-none'
+                  )}
+                >
+                  {withData && (
+                    <div className="flex flex-row gap-4">
+                      <div>
+                        <figure className="w-10 h-10 rounded-md bg-info-200 border border-info-400 flex items-center justify-center">
+                          <DatabaseZap className="text-info" size={20} strokeWidth={2} />
+                        </figure>
+                      </div>
+                      <div className="flex flex-col gap-y-1">
+                        {isLoadingDiskAttr ? (
                           <>
-                            <p className="text-sm text-foreground">
-                              Branch disk size will incur additional cost per month
-                            </p>
-                            <p className="text-sm text-foreground-light">
-                              The additional cost and time taken to create a data branch is relative
-                              to the size of your database. We are unable to provide an estimate as
-                              we were unable to retrieve your project's disk configuration
-                            </p>
+                            <ShimmeringLoader className="w-32 h-5 py-0" />
+                            <ShimmeringLoader className="w-72 h-8 py-0" />
                           </>
                         ) : (
                           <>
-                            <p className="text-sm text-foreground">
-                              Branch disk size is billed at ${estimatedDiskCost.total.toFixed(2)}{' '}
-                              per month
-                            </p>
-                            <p className="text-sm text-foreground-light">
-                              Creating a data branch will take about{' '}
-                              <span className="text-foreground">
-                                {estimateRestoreTime(branchDiskAttributes).toFixed()} minutes
-                              </span>{' '}
-                              and costs{' '}
-                              <span className="text-foreground">
-                                ${estimatedDiskCost.total.toFixed(2)}
-                              </span>{' '}
-                              per month based on your current target database volume size of{' '}
-                              {branchDiskAttributes.size_gb} GB and your{' '}
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <span className={InlineLinkClassName}>
-                                    project's disk configuration
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom">
-                                  <div className="flex items-center gap-x-2">
-                                    <p className="w-24">Disk type:</p>
-                                    <p className="w-16">
-                                      {branchDiskAttributes.type.toUpperCase()}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-x-2">
-                                    <p className="w-24">Target disk size:</p>
-                                    <p className="w-16">{branchDiskAttributes.size_gb} GB</p>
-                                    <p>(${estimatedDiskCost.size.toFixed(2)})</p>
-                                  </div>
-                                  <div className="flex items-center gap-x-2">
-                                    <p className="w-24">IOPs:</p>
-                                    <p className="w-16">{branchDiskAttributes.iops} IOPS</p>
-                                    <p>(${estimatedDiskCost.iops.toFixed(2)})</p>
-                                  </div>
-                                  {'throughput_mbps' in branchDiskAttributes && (
-                                    <div className="flex items-center gap-x-2">
-                                      <p className="w-24">Throughput:</p>
-                                      <p className="w-16">
-                                        {branchDiskAttributes.throughput_mbps} MB/s
+                            {isErrorDiskAttr ? (
+                              <>
+                                <p className="text-sm text-foreground">
+                                  Branch disk size will incur additional cost per month
+                                </p>
+                                <p className="text-sm text-foreground-light">
+                                  The additional cost and time taken to create a data branch is
+                                  relative to the size of your database. We are unable to provide an
+                                  estimate as we were unable to retrieve your project's disk
+                                  configuration
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-sm text-foreground">
+                                  Branch disk size is billed at $
+                                  {estimatedDiskCost.total.toFixed(2)} per month
+                                </p>
+                                <p className="text-sm text-foreground-light">
+                                  Creating a data branch will take about{' '}
+                                  <span className="text-foreground">
+                                    {estimateRestoreTime(branchDiskAttributes).toFixed()} minutes
+                                  </span>{' '}
+                                  and costs{' '}
+                                  <span className="text-foreground">
+                                    ${estimatedDiskCost.total.toFixed(2)}
+                                  </span>{' '}
+                                  per month based on your current target database volume size of{' '}
+                                  {branchDiskAttributes.size_gb} GB and your{' '}
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      <span className={InlineLinkClassName}>
+                                        project's disk configuration
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="bottom">
+                                      <div className="flex items-center gap-x-2">
+                                        <p className="w-24">Disk type:</p>
+                                        <p className="w-16">
+                                          {branchDiskAttributes.type.toUpperCase()}
+                                        </p>
+                                      </div>
+                                      <div className="flex items-center gap-x-2">
+                                        <p className="w-24">Target disk size:</p>
+                                        <p className="w-16">{branchDiskAttributes.size_gb} GB</p>
+                                        <p>(${estimatedDiskCost.size.toFixed(2)})</p>
+                                      </div>
+                                      <div className="flex items-center gap-x-2">
+                                        <p className="w-24">IOPs:</p>
+                                        <p className="w-16">{branchDiskAttributes.iops} IOPS</p>
+                                        <p>(${estimatedDiskCost.iops.toFixed(2)})</p>
+                                      </div>
+                                      {'throughput_mbps' in branchDiskAttributes && (
+                                        <div className="flex items-center gap-x-2">
+                                          <p className="w-24">Throughput:</p>
+                                          <p className="w-16">
+                                            {branchDiskAttributes.throughput_mbps} MB/s
+                                          </p>
+                                          <p>(${estimatedDiskCost.throughput.toFixed(2)})</p>
+                                        </div>
+                                      )}
+                                      <p className="mt-2">
+                                        More info in{' '}
+                                        <InlineLink
+                                          onClick={() => setShowCreateBranchModal(false)}
+                                          className="pointer-events-auto"
+                                          href={getInfrastructurePath(projectRef)}
+                                        >
+                                          Infrastructure
+                                        </InlineLink>
                                       </p>
-                                      <p>(${estimatedDiskCost.throughput.toFixed(2)})</p>
-                                    </div>
-                                  )}
-                                  <p className="mt-2">
-                                    More info in{' '}
-                                    <InlineLink
-                                      onClick={() => setShowCreateBranchModal(false)}
-                                      className="pointer-events-auto"
-                                      href={getInfrastructurePath(projectRef)}
-                                    >
-                                      Infrastructure
-                                    </InlineLink>
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                              .
-                            </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  .
+                                </p>
+                              </>
+                            )}
                           </>
                         )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
+                      </div>
+                    </div>
+                  )}
 
-              {githubConnection && (
-                <div className="flex flex-row gap-4">
-                  <div>
-                    <figure className="w-10 h-10 rounded-md bg-info-200 border border-info-400 flex items-center justify-center">
-                      <GitMerge className="text-info" size={20} strokeWidth={2} />
-                    </figure>
-                  </div>
-                  <div className="flex flex-col gap-y-1">
-                    <p className="text-sm text-foreground">
-                      {prodBranch?.git_branch
-                        ? 'Merging to production enabled'
-                        : 'Merging to production disabled'}
-                    </p>
-                    <p className="text-sm text-foreground-light">
-                      {prodBranch?.git_branch ? (
-                        <>
-                          When this branch is merged to{' '}
-                          <span className="text-foreground">{prodBranch.git_branch}</span>,
-                          migrations will be deployed to production. Otherwise, migrations only run
-                          on preview branches.
-                        </>
-                      ) : (
-                        <>
-                          Merging this branch to production will not deploy migrations. To enable
-                          production deployment, enable "Deploy to production" in project
-                          integration settings.
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
+                  {githubConnection && (
+                    <div className="flex flex-row gap-4">
+                      <div>
+                        <figure className="w-10 h-10 rounded-md bg-info-200 border border-info-400 flex items-center justify-center">
+                          <GitMerge className="text-info" size={20} strokeWidth={2} />
+                        </figure>
+                      </div>
+                      <div className="flex flex-col gap-y-1">
+                        <p className="text-sm text-foreground">
+                          {prodBranch?.git_branch
+                            ? 'Merging to production enabled'
+                            : 'Merging to production disabled'}
+                        </p>
+                        <p className="text-sm text-foreground-light">
+                          {prodBranch?.git_branch ? (
+                            <>
+                              When this branch is merged to{' '}
+                              <span className="text-foreground">{prodBranch.git_branch}</span>,
+                              migrations will be deployed to production. Otherwise, migrations only
+                              run on preview branches.
+                            </>
+                          ) : (
+                            <>
+                              Merging this branch to production will not deploy migrations. To
+                              enable production deployment, enable "Deploy to production" in project
+                              integration settings.
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-              <div className="flex flex-row gap-4">
-                <div>
-                  <figure className="w-10 h-10 rounded-md bg-info-200 border border-info-400 flex items-center justify-center">
-                    <DollarSign className="text-info" size={20} strokeWidth={2} />
-                  </figure>
-                </div>
-                <div className="flex flex-col gap-y-1">
-                  <p className="text-sm text-foreground">
-                    Branch compute is billed at $
-                    {withData ? branchComputeSize.priceHourly : instanceSizeSpecs.micro.priceHourly}{' '}
-                    per hour
-                  </p>
-                  <p className="text-sm text-foreground-light">
-                    {withData ? (
-                      <>
-                        <code className="text-code-inline">{branchComputeSize.label}</code> compute
-                        size is automatically selected to match your production branch. You may
-                        downgrade after creation or pause the branch when not in use to save cost.
-                      </>
-                    ) : (
-                      <>This cost will continue for as long as the branch has not been removed.</>
-                    )}
-                  </p>
-                </div>
-              </div>
+                  <div className="flex flex-row gap-4">
+                    <div>
+                      <figure className="w-10 h-10 rounded-md bg-info-200 border border-info-400 flex items-center justify-center">
+                        <DollarSign className="text-info" size={20} strokeWidth={2} />
+                      </figure>
+                    </div>
+                    <div className="flex flex-col gap-y-1">
+                      <p className="text-sm text-foreground">
+                        Branch compute is billed at $
+                        {withData
+                          ? branchComputeSize.priceHourly
+                          : instanceSizeSpecs.micro.priceHourly}{' '}
+                        per hour
+                      </p>
+                      <p className="text-sm text-foreground-light">
+                        {withData ? (
+                          <>
+                            <code className="text-code-inline">{branchComputeSize.label}</code>{' '}
+                            compute size is automatically selected to match your production branch.
+                            You may downgrade after creation or pause the branch when not in use to
+                            save cost.
+                          </>
+                        ) : (
+                          <>
+                            This cost will continue for as long as the branch has not been removed.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
 
-              {!hasPitrEnabled && <BranchingPITRNotice />}
-              <TaxDisclaimer />
-            </DialogSection>
+                  {!hasPitrEnabled && <BranchingPITRNotice />}
+                  <TaxDisclaimer />
+                </DialogSection>
+              </>
+            )}
 
             <DialogFooter className="justify-end gap-2" padding="medium">
               <Button disabled={isCreatingBranch} onClick={() => setShowCreateBranchModal(false)}>

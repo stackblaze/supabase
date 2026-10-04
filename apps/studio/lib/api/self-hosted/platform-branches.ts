@@ -1,25 +1,38 @@
 /**
- * Branches of this Supabase deployment, for self-hosted Studio. A branch is a second,
- * disposable deployment the platform creates fresh from the Supabase template next to this
- * one, with its own database, storage and Studio. Studio's server proxies to the platform
- * with its app token (capability `branches`); the browser never sees the token.
+ * Branches of this Supabase deployment, for self-hosted Studio's native branch screens. A
+ * branch is a second, disposable deployment the platform creates fresh from the Supabase
+ * template next to this one, with its own database, storage and Studio. Studio's server
+ * asks the platform with its app token (capability `branches`) and answers in the shapes
+ * the screens were written for; the browser never sees the token.
  */
 import { call, platformBackupsConfigured, type PlatformResult } from './platform-backups'
+import type { components } from '@/data/api'
+import { DEFAULT_PROJECT } from '@/lib/constants/api'
 
-export type PlatformBranch = {
+type PlatformBranch = {
   name: string
   suffix: string
   primary: string
   host: string | null
-  apps: { name: string; role: string }[]
+  createdAt?: string | null
+  status?: 'creating' | 'ready'
 }
 
-export type PlatformBranches = {
-  parent: { primary: string; host: string | null }
+type PlatformBranches = {
+  parent: { primary: string; host: string | null; createdAt?: string | null }
   /** The branch this Studio belongs to, or null when it is the main deployment. */
   current: string | null
   branches: PlatformBranch[]
 }
+
+/** A branch as the native screens expect it, plus where its own Studio lives. */
+export type NativeBranch = components['schemas']['BranchResponse_Output'] & {
+  studio_url?: string
+}
+
+/** Ref the main deployment gets when asked from a branch's Studio (whose own ref is the default). */
+export const MAIN_REF = 'main'
+const MAIN_ID = 'main'
 
 const env = () => ({
   pipeline: process.env.KUBERO_PIPELINE ?? '',
@@ -37,8 +50,131 @@ const base = () => {
   return `/api/apps/${encodeURIComponent(e.pipeline)}/${encodeURIComponent(e.phase)}/${encodeURIComponent(e.primary)}/branches`
 }
 
-export const listBranches = (): Promise<PlatformResult<PlatformBranches>> =>
-  call<PlatformBranches>('GET', base())
-export const createBranch = (name: string) => call<PlatformBranch>('POST', base(), { name })
-export const deleteBranch = (name: string) =>
-  call<{ removed: string[] }>('DELETE', `${base()}/${encodeURIComponent(name)}`)
+const studioUrl = (host: string | null | undefined) => (host ? `https://${host}` : undefined)
+
+function toNative(list: PlatformBranches): NativeBranch[] {
+  const selfRef = DEFAULT_PROJECT.ref
+  const onMain = !list.current
+  const mainRef = onMain ? selfRef : MAIN_REF
+  const epoch = new Date(0).toISOString()
+  const mainCreated = list.parent.createdAt ?? epoch
+
+  const main: NativeBranch = {
+    id: MAIN_ID,
+    name: 'main',
+    project_ref: mainRef,
+    parent_project_ref: mainRef,
+    is_default: true,
+    persistent: true,
+    status: 'FUNCTIONS_DEPLOYED',
+    preview_project_status: 'ACTIVE_HEALTHY',
+    created_at: mainCreated,
+    updated_at: mainCreated,
+    with_data: false,
+    ...(onMain ? {} : { studio_url: studioUrl(list.parent.host) }),
+  }
+
+  const branches = list.branches.map((branch): NativeBranch => {
+    const isSelf = branch.name === list.current
+    // Older platforms report no status: a branch with a URL is taken as up.
+    const ready = branch.status ? branch.status === 'ready' : !!branch.host
+    const created = branch.createdAt ?? epoch
+    return {
+      id: branch.name,
+      name: branch.name,
+      project_ref: isSelf ? selfRef : `branch-${branch.suffix}`,
+      parent_project_ref: mainRef,
+      is_default: false,
+      persistent: false,
+      status: ready ? 'FUNCTIONS_DEPLOYED' : 'CREATING_PROJECT',
+      preview_project_status: ready ? 'ACTIVE_HEALTHY' : 'COMING_UP',
+      created_at: created,
+      updated_at: created,
+      with_data: false,
+      ...(isSelf ? {} : { studio_url: studioUrl(branch.host) }),
+    }
+  })
+
+  return [main, ...branches]
+}
+
+export type BranchingState = {
+  /** The platform offers branches for this deployment. */
+  enabled: boolean
+  /** This Studio is itself a branch. */
+  isBranch: boolean
+  branches: NativeBranch[]
+}
+
+const OFF: BranchingState = { enabled: false, isBranch: false, branches: [] }
+
+// The project details and the branch list are asked for together on every page; one
+// answer from the platform serves them all for a few seconds.
+const CACHE_MS = 5_000
+let cached: { at: number; state: BranchingState } | undefined
+
+/** What the native screens need to know; "not offered" rather than an error when the platform or token cannot do branches. */
+export async function getBranchingState(): Promise<PlatformResult<BranchingState>> {
+  if (!platformBranchesConfigured()) return { data: OFF }
+  if (cached && Date.now() - cached.at < CACHE_MS) return { data: cached.state }
+  const result = await call<PlatformBranches>('GET', base())
+  if (result.error) {
+    // No branch routes on this platform, or a token minted before the capability existed.
+    if ([401, 403, 404].includes(result.error.status)) return { data: OFF }
+    return { error: result.error }
+  }
+  const state: BranchingState = {
+    enabled: true,
+    isBranch: !!result.data.current,
+    branches: toNative(result.data),
+  }
+  cached = { at: Date.now(), state }
+  return { data: state }
+}
+
+export async function createBranch(name: string): Promise<PlatformResult<NativeBranch>> {
+  const created = await call<PlatformBranch>('POST', base(), { name })
+  if (created.error) return { error: created.error }
+  cached = undefined
+  const state = await getBranchingState()
+  const branch = state.data?.branches.find((b) => b.id === created.data.name)
+  if (branch) return { data: branch }
+  // Not listed yet (the platform caches its app list briefly): answer from what was created.
+  const now = new Date().toISOString()
+  return {
+    data: {
+      id: created.data.name,
+      name: created.data.name,
+      project_ref: `branch-${created.data.suffix}`,
+      parent_project_ref: DEFAULT_PROJECT.ref,
+      is_default: false,
+      persistent: false,
+      status: 'CREATING_PROJECT',
+      preview_project_status: 'COMING_UP',
+      created_at: now,
+      updated_at: now,
+      with_data: false,
+    },
+  }
+}
+
+/** Looks a branch up by its id (its name) or by the ref the native screens know it under. */
+export async function findBranch(idOrRef: string): Promise<PlatformResult<NativeBranch>> {
+  const state = await getBranchingState()
+  if (state.error) return { error: state.error }
+  const branch = state.data.branches.find((b) => b.id === idOrRef || b.project_ref === idOrRef)
+  if (!branch) return { error: { status: 404, message: 'Branch not found' } }
+  return { data: branch }
+}
+
+export async function deleteBranch(idOrRef: string): Promise<PlatformResult<{ message: 'ok' }>> {
+  const found = await findBranch(idOrRef)
+  if (found.error) return { error: found.error }
+  if (found.data.is_default) {
+    return { error: { status: 400, message: 'The main branch cannot be deleted' } }
+  }
+  const removed = await call<unknown>('DELETE', `${base()}/${encodeURIComponent(found.data.name)}`)
+  if (removed.error) return { error: removed.error }
+  cached = undefined
+  return { data: { message: 'ok' } }
+}
