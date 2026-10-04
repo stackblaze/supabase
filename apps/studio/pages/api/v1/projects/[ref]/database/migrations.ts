@@ -2,7 +2,11 @@ import { NextApiRequest, NextApiResponse } from 'next'
 
 import { constructHeaders } from '@/lib/api/apiHelpers'
 import { apiWrapper } from '@/lib/api/apiWrapper'
-import { applyAndTrackMigrations, listMigrationVersions } from '@/lib/api/self-hosted/migrations'
+import {
+  applyAndTrackMigrations,
+  listMigrationVersions,
+  trackMigration,
+} from '@/lib/api/self-hosted/migrations'
 import { PgMetaDatabaseError } from '@/lib/api/self-hosted/types'
 
 export default (req: NextApiRequest, res: NextApiResponse) =>
@@ -16,8 +20,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       return handleGetAll(req, res)
     case 'POST':
       return handlePost(req, res)
+    case 'PUT':
+      return handlePut(req, res)
     default:
-      res.setHeader('Allow', ['GET', 'POST'])
+      res.setHeader('Allow', ['GET', 'POST', 'PUT'])
       res.status(405).json({ error: { message: `Method ${method} Not Allowed` } })
   }
 }
@@ -43,6 +49,25 @@ const handlePost = async (req: NextApiRequest, res: NextApiResponse) => {
   const { query, name } = req.body
 
   const { data, error } = await applyAndTrackMigrations({ query, name, headers })
+
+  if (error) {
+    if (error instanceof PgMetaDatabaseError) {
+      const { statusCode, message, formattedError } = error
+      return res.status(statusCode).json({ message, formattedError })
+    }
+    const { message } = error
+    return res.status(500).json({ message, formattedError: message })
+  } else {
+    return res.status(200).json(data)
+  }
+}
+
+// Records a migration as applied without running it (the platform's "upsert").
+const handlePut = async (req: NextApiRequest, res: NextApiResponse) => {
+  const headers = constructHeaders(req.headers)
+  const { query, name } = req.body
+
+  const { data, error } = await trackMigration({ query, name, headers })
 
   if (error) {
     if (error instanceof PgMetaDatabaseError) {

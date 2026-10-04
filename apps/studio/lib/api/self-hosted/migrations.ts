@@ -44,6 +44,19 @@ const applyAndTrackMigrationsQuery = (query: string, name?: string) => {
   `
 }
 
+const trackMigrationQuery = (query: string, name?: string) => {
+  const dollar = `$${makeRandomString(20)}$`
+  const quote = (s?: string) => (s ? dollar + s + dollar : `''`)
+  return source`
+    insert into supabase_migrations.schema_migrations (version, name, statements)
+    values (
+      to_char(current_timestamp, 'YYYYMMDDHH24MISS'),
+      ${quote(name)},
+      array[${quote(query)}]
+    );
+  `
+}
+
 export type ListMigrationVersionsOptions = {
   headers?: HeadersInit
 }
@@ -108,4 +121,30 @@ export async function applyAndTrackMigrations<T = unknown>({
   })
 
   return applyAndTrackResponse
+}
+
+/**
+ * Records a SQL migration in the migrations history table without applying it: the
+ * database already has these changes. Merging a branch does this with the schema
+ * comparison before asking for the merge.
+ *
+ * _Only call this from server-side self-hosted code._
+ */
+export async function trackMigration<T = unknown>({
+  query,
+  name,
+  headers,
+}: ApplyAndTrackMigrationsOptions): Promise<WrappedResult<T[]>> {
+  assertSelfHosted()
+
+  const initializeResponse = await executeQuery<void>({
+    query: initializeHistoryTableQuery(),
+    headers,
+  })
+
+  if (initializeResponse.error) {
+    return initializeResponse
+  }
+
+  return executeQuery<T>({ query: trackMigrationQuery(query, name), headers })
 }
