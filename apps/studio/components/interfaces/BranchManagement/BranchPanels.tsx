@@ -10,6 +10,7 @@ import { TimestampInfo } from 'ui-patterns/TimestampInfo'
 import { WorkflowLogs } from './WorkflowLogs'
 import { ButtonTooltip } from '@/components/ui/ButtonTooltip'
 import type { Branch } from '@/data/branches/branches-query'
+import { IS_PLATFORM } from '@/lib/constants'
 
 interface BranchManagementSectionProps {
   header: string | ReactNode
@@ -143,7 +144,7 @@ export const BranchRow = ({
             />
           </p>
         )}
-        <WorkflowLogs branch={branch} />
+        {IS_PLATFORM && <WorkflowLogs branch={branch} />}
         {rowActions}
       </div>
     </div>

@@ -338,111 +338,117 @@ const PreviewBranchActions = ({
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" side="bottom" align="end">
-          <DropdownMenuItemTooltip
-            className="gap-x-2"
-            disabled={!canUpdateBranches || !isBranchActiveHealthy || isUpdatingBranch}
-            onSelect={(e) => {
-              e.stopPropagation()
-              setShowEditBranchModal(true)
-            }}
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowEditBranchModal(true)
-            }}
-            tooltip={{
-              content: {
-                side: 'left',
-                text: !canUpdateBranches
-                  ? 'You need additional permissions to edit branches'
-                  : !isBranchActiveHealthy
-                    ? 'Branch is still initializing. Please wait for it to become healthy before editing.'
-                    : undefined,
-              },
-            }}
-          >
-            <Pencil size={14} /> Edit branch
-          </DropdownMenuItemTooltip>
-
-          {!branch.deletion_scheduled_at && (
+          {/* Editing, resetting and changing a branch's kind go through the platform's own API. */}
+          {IS_PLATFORM && (
             <>
               <DropdownMenuItemTooltip
                 className="gap-x-2"
-                disabled={!canUpdateBranches || isRetriggering}
+                disabled={!canUpdateBranches || !isBranchActiveHealthy || isUpdatingBranch}
                 onSelect={(e) => {
                   e.stopPropagation()
-                  setShowConfirmRetriggersModal(true)
+                  setShowEditBranchModal(true)
                 }}
                 onClick={(e) => {
                   e.stopPropagation()
-                  setShowConfirmRetriggersModal(true)
+                  setShowEditBranchModal(true)
                 }}
                 tooltip={{
                   content: {
                     side: 'left',
                     text: !canUpdateBranches
-                      ? `You need additional permissions to ${branch.git_branch ? 'resync' : 'rebase'} branches`
-                      : undefined,
-                  },
-                }}
-              >
-                <Redo size={14} /> {branch.git_branch ? 'Resync branch' : 'Rebase branch'}
-              </DropdownMenuItemTooltip>
-              <DropdownMenuItemTooltip
-                className="gap-x-2"
-                disabled={isResetting || !isBranchActiveHealthy}
-                onSelect={(e) => {
-                  e.stopPropagation()
-                  setShowConfirmResetModal(true)
-                }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowConfirmResetModal(true)
-                }}
-                tooltip={{
-                  content: {
-                    side: 'left',
-                    text: !isBranchActiveHealthy
-                      ? 'Branch is still initializing. Please wait for it to become healthy before resetting.'
-                      : undefined,
-                  },
-                }}
-              >
-                <RefreshCw size={14} /> Reset branch
-              </DropdownMenuItemTooltip>
-              <DropdownMenuItemTooltip
-                className="gap-x-2"
-                disabled={
-                  !isBranchActiveHealthy || (!branch.persistent && !hasAccessToPersistentBranching)
-                }
-                onSelect={(e) => {
-                  e.stopPropagation()
-                  setShowBranchModeSwitch(true)
-                }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowBranchModeSwitch(true)
-                }}
-                tooltip={{
-                  content: {
-                    side: 'left',
-                    text: !isBranchActiveHealthy
-                      ? 'Branch is still initializing. Please wait for it to become healthy before switching.'
-                      : !branch.persistent && !hasAccessToPersistentBranching
-                        ? 'Upgrade your plan to access persistent branches'
+                      ? 'You need additional permissions to edit branches'
+                      : !isBranchActiveHealthy
+                        ? 'Branch is still initializing. Please wait for it to become healthy before editing.'
                         : undefined,
                   },
                 }}
               >
-                {branch.persistent ? (
-                  <>
-                    <Clock size={14} /> Switch to preview
-                  </>
-                ) : (
-                  <>
-                    <Infinity size={14} className="scale-110" /> Switch to persistent
-                  </>
-                )}
+                <Pencil size={14} /> Edit branch
               </DropdownMenuItemTooltip>
+
+              {!branch.deletion_scheduled_at && (
+                <>
+                  <DropdownMenuItemTooltip
+                    className="gap-x-2"
+                    disabled={!canUpdateBranches || isRetriggering}
+                    onSelect={(e) => {
+                      e.stopPropagation()
+                      setShowConfirmRetriggersModal(true)
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowConfirmRetriggersModal(true)
+                    }}
+                    tooltip={{
+                      content: {
+                        side: 'left',
+                        text: !canUpdateBranches
+                          ? `You need additional permissions to ${branch.git_branch ? 'resync' : 'rebase'} branches`
+                          : undefined,
+                      },
+                    }}
+                  >
+                    <Redo size={14} /> {branch.git_branch ? 'Resync branch' : 'Rebase branch'}
+                  </DropdownMenuItemTooltip>
+                  <DropdownMenuItemTooltip
+                    className="gap-x-2"
+                    disabled={isResetting || !isBranchActiveHealthy}
+                    onSelect={(e) => {
+                      e.stopPropagation()
+                      setShowConfirmResetModal(true)
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowConfirmResetModal(true)
+                    }}
+                    tooltip={{
+                      content: {
+                        side: 'left',
+                        text: !isBranchActiveHealthy
+                          ? 'Branch is still initializing. Please wait for it to become healthy before resetting.'
+                          : undefined,
+                      },
+                    }}
+                  >
+                    <RefreshCw size={14} /> Reset branch
+                  </DropdownMenuItemTooltip>
+                  <DropdownMenuItemTooltip
+                    className="gap-x-2"
+                    disabled={
+                      !isBranchActiveHealthy ||
+                      (!branch.persistent && !hasAccessToPersistentBranching)
+                    }
+                    onSelect={(e) => {
+                      e.stopPropagation()
+                      setShowBranchModeSwitch(true)
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowBranchModeSwitch(true)
+                    }}
+                    tooltip={{
+                      content: {
+                        side: 'left',
+                        text: !isBranchActiveHealthy
+                          ? 'Branch is still initializing. Please wait for it to become healthy before switching.'
+                          : !branch.persistent && !hasAccessToPersistentBranching
+                            ? 'Upgrade your plan to access persistent branches'
+                            : undefined,
+                      },
+                    }}
+                  >
+                    {branch.persistent ? (
+                      <>
+                        <Clock size={14} /> Switch to preview
+                      </>
+                    ) : (
+                      <>
+                        <Infinity size={14} className="scale-110" /> Switch to persistent
+                      </>
+                    )}
+                  </DropdownMenuItemTooltip>
+                </>
+              )}
             </>
           )}
 
