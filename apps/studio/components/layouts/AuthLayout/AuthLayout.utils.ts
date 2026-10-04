@@ -4,6 +4,7 @@ import { createElement } from 'react'
 
 import type { ProductMenuGroup } from '@/components/ui/ProductMenu/ProductMenu.types'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
+import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { IS_PLATFORM } from '@/lib/constants'
 import { SHORTCUT_IDS } from '@/state/shortcuts/registry'
 
@@ -12,6 +13,8 @@ const ExternalLinkIcon = createElement(ArrowUpRight, { strokeWidth: 1, className
 export interface GenerateAuthMenuOptions {
   ref?: string
   isPlatform: boolean
+  /** Self-hosted on a hosting platform that keeps the auth service's settings. */
+  platformManaged?: boolean
   showOverview: boolean
   features: {
     signInProviders: boolean
@@ -26,6 +29,8 @@ export interface GenerateAuthMenuOptions {
 
 export function generateAuthMenu(options: GenerateAuthMenuOptions): ProductMenuGroup[] {
   const { ref, isPlatform, showOverview, features } = options
+  // The settings screens work wherever the auth config can be read and saved.
+  const configurable = isPlatform || options.platformManaged === true
   const passkeysInMenu = Boolean(features.passkeys)
   const baseUrl = `/project/${ref}/auth`
 
@@ -64,7 +69,7 @@ export function generateAuthMenu(options: GenerateAuthMenuOptions): ProductMenuG
           : []),
       ],
     },
-    ...(features.emails && isPlatform
+    ...(features.emails && configurable
       ? [
           {
             title: 'Notifications',
@@ -75,7 +80,8 @@ export function generateAuthMenu(options: GenerateAuthMenuOptions): ProductMenuG
                       name: 'Emails',
                       key: 'email',
                       pages: ['templates', 'smtp'],
-                      url: `${baseUrl}/templates`,
+                      // Template text is stored by the hosted platform only.
+                      url: isPlatform ? `${baseUrl}/templates` : `${baseUrl}/smtp`,
                       items: [],
                       shortcutId: SHORTCUT_IDS.NAV_AUTH_EMAIL,
                     },
@@ -96,7 +102,7 @@ export function generateAuthMenu(options: GenerateAuthMenuOptions): ProductMenuG
           items: [],
           // shortcutId: SHORTCUT_IDS.NAV_AUTH_POLICIES,
         },
-        ...(isPlatform
+        ...(configurable
           ? [
               ...(features.signInProviders
                 ? [
@@ -110,7 +116,7 @@ export function generateAuthMenu(options: GenerateAuthMenuOptions): ProductMenuG
                     },
                   ]
                 : []),
-              ...(passkeysInMenu
+              ...(passkeysInMenu && isPlatform
                 ? [
                     {
                       name: 'Passkeys',
@@ -121,13 +127,17 @@ export function generateAuthMenu(options: GenerateAuthMenuOptions): ProductMenuG
                     },
                   ]
                 : []),
-              {
-                name: 'OAuth Server',
-                key: 'oauth-server',
-                url: `${baseUrl}/oauth-server`,
-                label: 'Beta',
-                shortcutId: SHORTCUT_IDS.NAV_AUTH_OAUTH_SERVER,
-              },
+              ...(isPlatform
+                ? [
+                    {
+                      name: 'OAuth Server',
+                      key: 'oauth-server',
+                      url: `${baseUrl}/oauth-server`,
+                      label: 'Beta',
+                      shortcutId: SHORTCUT_IDS.NAV_AUTH_OAUTH_SERVER,
+                    },
+                  ]
+                : []),
               {
                 name: 'Sessions',
                 key: 'sessions',
@@ -183,14 +193,18 @@ export function generateAuthMenu(options: GenerateAuthMenuOptions): ProductMenuG
                 label: 'Beta',
                 shortcutId: SHORTCUT_IDS.NAV_AUTH_HOOKS,
               },
-              {
-                name: 'Audit Logs',
-                key: 'audit-logs',
-                url: `${baseUrl}/audit-logs`,
-                items: [],
-                shortcutId: SHORTCUT_IDS.NAV_AUTH_AUDIT_LOGS,
-              },
-              ...(features.performance
+              ...(isPlatform
+                ? [
+                    {
+                      name: 'Audit Logs',
+                      key: 'audit-logs',
+                      url: `${baseUrl}/audit-logs`,
+                      items: [],
+                      shortcutId: SHORTCUT_IDS.NAV_AUTH_AUDIT_LOGS,
+                    },
+                  ]
+                : []),
+              ...(features.performance && isPlatform
                 ? [
                     {
                       name: 'Performance',
@@ -210,6 +224,7 @@ export function generateAuthMenu(options: GenerateAuthMenuOptions): ProductMenuG
 
 export const useGenerateAuthMenu = (): ProductMenuGroup[] => {
   const { ref } = useParams()
+  const { data: project } = useSelectedProjectQuery()
   const showOverview = useFlag('authOverviewPage')
   const enablePasskeyAuth = useFlag('enablePasskeyAuth')
 
@@ -232,6 +247,7 @@ export const useGenerateAuthMenu = (): ProductMenuGroup[] => {
   return generateAuthMenu({
     ref,
     isPlatform: IS_PLATFORM,
+    platformManaged: project?.is_platform_managed === true,
     showOverview,
     features: {
       signInProviders: authenticationSignInProviders,

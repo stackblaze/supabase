@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { authKeys } from './keys'
 import type { components } from '@/data/api'
 import { get, handleError } from '@/data/fetchers'
+import { useProjectDetailQuery } from '@/data/projects/project-detail-query'
 import { IS_PLATFORM } from '@/lib/constants'
 import type { ResponseError, UseCustomQueryOptions } from '@/types'
 
@@ -37,13 +38,21 @@ export const useAuthConfigQuery = <TData = ProjectAuthConfigData>(
     enabled = true,
     ...options
   }: UseCustomQueryOptions<ProjectAuthConfigData, ProjectAuthConfigError, TData> = {}
-) =>
-  useQuery<ProjectAuthConfigData, ProjectAuthConfigError, TData>({
+) => {
+  // Self-hosted: only a hosting platform that keeps the auth service's settings can answer.
+  const { data: project } = useProjectDetailQuery({ ref: projectRef }, { enabled: !IS_PLATFORM })
+  const platformManaged = project?.is_platform_managed === true
+  return useQuery<ProjectAuthConfigData, ProjectAuthConfigError, TData>({
     queryKey: authKeys.authConfig(projectRef),
     queryFn: ({ signal }) => getProjectAuthConfig({ projectRef }, signal),
-    enabled: enabled && IS_PLATFORM && typeof projectRef !== 'undefined' && projectRef !== '_',
+    enabled:
+      enabled &&
+      (IS_PLATFORM || platformManaged) &&
+      typeof projectRef !== 'undefined' &&
+      projectRef !== '_',
     ...options,
   })
+}
 
 export const useAuthConfigPrefetch = ({ projectRef }: AuthConfigVariables) => {
   const client = useQueryClient()
