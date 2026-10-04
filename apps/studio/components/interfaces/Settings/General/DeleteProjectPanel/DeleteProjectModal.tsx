@@ -16,7 +16,7 @@ import { useOrgSubscriptionQuery } from '@/data/subscriptions/org-subscription-q
 import { useLastVisitedOrganization } from '@/hooks/misc/useLastVisitedOrganization'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
-import { DOCS_URL } from '@/lib/constants'
+import { BASE_PATH, DOCS_URL, IS_PLATFORM } from '@/lib/constants'
 import type { Organization } from '@/types'
 
 export const DeleteProjectModal = ({
@@ -83,6 +83,15 @@ export const DeleteProjectModal = ({
       }
 
       toast.success(`Successfully deleted ${project?.name}`)
+
+      // Self-hosted: this Studio goes away with the deployment; continue on the platform.
+      if (!IS_PLATFORM) {
+        const members = await fetch(`${BASE_PATH}/api/self-hosted/platform-members`)
+          .then((res) => (res.ok ? res.json() : undefined))
+          .catch(() => undefined)
+        if (members?.manageUrl) window.location.assign(members.manageUrl)
+        return
+      }
 
       // Only redirect if still viewing the deleted project
       if (router.asPath.startsWith(`/project/${projectRef}`)) {

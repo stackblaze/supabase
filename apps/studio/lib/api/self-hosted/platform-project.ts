@@ -59,3 +59,42 @@ export function serviceVersions(project: PlatformProject) {
     postgrest: versionOf(project, /postgrest/),
   }
 }
+
+export type PlatformMembers = {
+  /** People of the workspace that owns this deployment on the platform. */
+  members: {
+    id: string
+    email: string
+    name: string
+    role: string | null
+    teams: { name: string; role: string }[]
+    lastSignInAt: string | null
+  }[]
+  invites: { email: string; role: string; expiresAt: string | null }[]
+  /** The platform's dashboard, where members are invited and roles changed. */
+  manageUrl: string
+}
+
+export async function getPlatformMembers(): Promise<PlatformResult<PlatformMembers>> {
+  return call<PlatformMembers>('GET', `${base()}/members`)
+}
+
+/** Deletes the whole deployment on the platform: services, database and storage. */
+export async function deletePlatformProject(): Promise<PlatformResult<{ removed: string[] }>> {
+  cached = undefined
+  return call('DELETE', base())
+}
+
+/**
+ * How to reach the database. It is reachable from inside the platform's cluster only, so
+ * these are the in-cluster host and this deployment's own database and role.
+ */
+export function platformDatabase() {
+  if (!process.env.KUBERO_DB_INSTANCE || !process.env.PGHOST) return null
+  return {
+    db_host: process.env.PGHOST,
+    db_port: parseInt(process.env.PGPORT || '5432', 10),
+    db_name: process.env.PGDATABASE || process.env.POSTGRES_DB || 'postgres',
+    db_user: process.env.PGUSER || 'postgres',
+  }
+}

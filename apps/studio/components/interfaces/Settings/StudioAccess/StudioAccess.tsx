@@ -97,6 +97,92 @@ const formatDate = (value: string | null) => (value ? new Date(value).toLocaleSt
  * flagged as Studio admins. The gateway's dashboard password keeps working as
  * a fallback, so there is no way to lock yourself out from here.
  */
+type WorkspaceMembers = {
+  members: {
+    id: string
+    email: string
+    name: string
+    role: string | null
+    lastSignInAt: string | null
+  }[]
+  invites: { email: string; role: string }[]
+  manageUrl: string
+}
+
+async function fetchWorkspaceMembers(): Promise<WorkspaceMembers | null> {
+  const res = await fetch(`${BASE_PATH}/api/self-hosted/platform-members`).catch(() => undefined)
+  // Not on a hosting platform, or one without this listing.
+  if (!res || !res.ok) return null
+  return res.json()
+}
+
+/**
+ * The people who have access to this deployment on the hosting platform: the members of
+ * the workspace that owns it. They are invited and their roles changed in its dashboard.
+ */
+const WorkspaceMembersSection = () => {
+  const { data } = useQuery({
+    queryKey: ['self-hosted', 'platform-members'],
+    queryFn: fetchWorkspaceMembers,
+  })
+  if (!data) return null
+
+  return (
+    <PageSection>
+      <PageSectionMeta>
+        <PageSectionSummary>
+          <PageSectionTitle>Workspace members</PageSectionTitle>
+        </PageSectionSummary>
+        <p className="text-sm text-foreground-light">
+          People with access to this project on the hosting platform. Invite members and change
+          roles in its dashboard.
+        </p>
+      </PageSectionMeta>
+      <PageSectionContent>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Last sign in</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.members.map((member) => (
+                <TableRow key={member.id}>
+                  <TableCell>{member.name}</TableCell>
+                  <TableCell>{member.email}</TableCell>
+                  <TableCell className="capitalize">{member.role ?? 'Team member'}</TableCell>
+                  <TableCell>
+                    {member.lastSignInAt ? new Date(member.lastSignInAt).toLocaleDateString() : '–'}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {data.invites.map((invite) => (
+                <TableRow key={`invite-${invite.email}`}>
+                  <TableCell className="text-foreground-lighter">Invited</TableCell>
+                  <TableCell>{invite.email}</TableCell>
+                  <TableCell className="capitalize">{invite.role}</TableCell>
+                  <TableCell>–</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+        <div className="mt-4">
+          <Button asChild type="default">
+            <a href={data.manageUrl} target="_blank" rel="noreferrer">
+              Manage members
+            </a>
+          </Button>
+        </div>
+      </PageSectionContent>
+    </PageSection>
+  )
+}
+
 export const StudioAccess = () => {
   const queryClient = useQueryClient()
   const session = useSelfHostedSession()
@@ -180,6 +266,7 @@ export const StudioAccess = () => {
 
   return (
     <>
+      <WorkspaceMembersSection />
       <PageSection>
         <PageSectionMeta>
           <PageSectionSummary>

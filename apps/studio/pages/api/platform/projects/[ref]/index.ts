@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 
 import { apiWrapper } from '@/lib/api/apiWrapper'
 import { getBranchingState, MAIN_REF } from '@/lib/api/self-hosted/platform-branches'
-import { getPlatformProject } from '@/lib/api/self-hosted/platform-project'
+import { deletePlatformProject, getPlatformProject } from '@/lib/api/self-hosted/platform-project'
 import { DEFAULT_PROJECT, PROJECT_REST_URL } from '@/lib/constants/api'
 
 export default (req: NextApiRequest, res: NextApiResponse) => apiWrapper(req, res, handler)
@@ -13,8 +13,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   switch (method) {
     case 'GET':
       return handleGet(req, res)
+    case 'DELETE':
+      return handleDelete(req, res)
     default:
-      res.setHeader('Allow', ['GET'])
+      res.setHeader('Allow', ['GET', 'DELETE'])
       res.status(405).json({ data: null, error: { message: `Method ${method} Not Allowed` } })
   }
 }
@@ -34,4 +36,19 @@ const handleGet = async (_req: NextApiRequest, res: NextApiResponse) => {
   }
 
   return res.status(200).json(response)
+}
+
+// The hosting platform deletes the whole deployment: services, database and storage.
+const handleDelete = async (_req: NextApiRequest, res: NextApiResponse) => {
+  const branching = (await getBranchingState()).data
+  if (branching?.isBranch) {
+    return res.status(400).json({ message: 'A branch is deleted from the Branches page' })
+  }
+  const deleted = await deletePlatformProject()
+  if (deleted.error) {
+    return res
+      .status(deleted.error.status >= 500 ? 502 : deleted.error.status)
+      .json({ message: deleted.error.message })
+  }
+  return res.status(200).json({ ...DEFAULT_PROJECT })
 }
