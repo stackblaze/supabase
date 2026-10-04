@@ -21,7 +21,7 @@ import { useGitHubConnectionsQuery } from '@/data/integrations/github-connection
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
-import { DOCS_URL } from '@/lib/constants'
+import { DOCS_URL, IS_PLATFORM } from '@/lib/constants'
 import { useTrack } from '@/lib/telemetry/track'
 import { useAppStateSnapshot } from '@/state/app-state'
 import type { NextPageWithLayout } from '@/types'
@@ -52,9 +52,7 @@ const BranchesPage: NextPageWithLayout = () => {
     isPending: isLoadingConnections,
     isSuccess: isSuccessConnections,
     isError: isErrorConnections,
-  } = useGitHubConnectionsQuery({
-    organizationId: selectedOrg?.id,
-  })
+  } = useGitHubConnectionsQuery({ organizationId: selectedOrg?.id }, { enabled: IS_PLATFORM })
 
   const {
     data: branches,
@@ -72,8 +70,8 @@ const BranchesPage: NextPageWithLayout = () => {
   const repo = githubConnection?.repository.name ?? ''
 
   const isError = isErrorConnections || isErrorBranches
-  const isLoading = isLoadingConnections || isLoadingBranches
-  const isSuccess = isSuccessConnections && isSuccessBranches
+  const isLoading = (IS_PLATFORM && isLoadingConnections) || isLoadingBranches
+  const isSuccess = (!IS_PLATFORM || isSuccessConnections) && isSuccessBranches
 
   const isGithubConnected = githubConnection !== undefined
 

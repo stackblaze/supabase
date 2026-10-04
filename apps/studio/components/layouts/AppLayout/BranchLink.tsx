@@ -16,8 +16,11 @@ export function BranchLink({ branch, isSelected, onClose }: BranchLinkProps) {
   const track = useTrack()
   const router = useRouter()
   const sanitizedRoute = sanitizeRoute(router.route, router.query)
-  const href =
-    sanitizedRoute?.replace('[ref]', branch.project_ref) ?? `/project/${branch.project_ref}`
+  // Self-hosted on a platform with branches: each branch is its own deployment and Studio.
+  const studioUrl = (branch as Branch & { studio_url?: string }).studio_url
+  const href = studioUrl
+    ? `${studioUrl}/project/default`
+    : (sanitizedRoute?.replace('[ref]', branch.project_ref) ?? `/project/${branch.project_ref}`)
 
   return (
     <CommandItemLink
