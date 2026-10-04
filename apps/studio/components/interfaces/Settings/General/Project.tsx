@@ -15,7 +15,7 @@ import { ResumeProjectButton } from '@/components/interfaces/Project/ResumeProje
 import { useProjectPauseStatusQuery } from '@/data/projects/project-pause-status-query'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
-import { PROJECT_STATUS } from '@/lib/constants'
+import { IS_PLATFORM, PROJECT_STATUS } from '@/lib/constants'
 
 export const Project = () => {
   const { data: project } = useSelectedProjectQuery()
@@ -89,7 +89,8 @@ export const Project = () => {
               </div>
             </CardContent>
 
-            {!isPaused && (
+            {/* Pausing stops Studio too; a hosting platform offers it from its own dashboard. */}
+            {!isPaused && IS_PLATFORM && (
               <CardContent>
                 <div
                   className="flex w-full flex-col @lg:flex-row @lg:justify-between @lg:items-center gap-4"
