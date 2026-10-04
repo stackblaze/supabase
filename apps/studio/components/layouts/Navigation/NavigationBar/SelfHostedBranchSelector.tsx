@@ -43,12 +43,10 @@ async function request<T>(url: string, init: RequestInit | undefined, fallback: 
 
 const studioUrl = (host: string | null | undefined) => (host ? `https://${host}` : undefined)
 
-/**
- * Header selector for self-hosted Studio on a platform that offers branches: a branch is a
- * separate deployment with its own Studio, so picking one opens that Studio. Falls back to
- * the plain project name when the platform does not offer branches.
- */
-export function SelfHostedBranchSelector({ projectName }: { projectName: string }) {
+type BranchSelector = ReturnType<typeof useSelfHostedBranches>
+
+/** State and actions shared by the two places the selector appears. */
+function useSelfHostedBranches() {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [newName, setNewName] = useState('')
@@ -97,6 +95,132 @@ export function SelfHostedBranchSelector({ projectName }: { projectName: string 
     onError: (error: Error) => toast.error(error.message),
   })
 
+  return { data, open, setOpen, newName, setNewName, deleting, setDeleting, create, remove }
+}
+
+function BranchChip({ name }: { name: string }) {
+  return (
+    <span className="flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs text-foreground-light">
+      <GitBranch className="size-3 shrink-0" strokeWidth={1.5} />
+      <span className="max-w-32 truncate">{name}</span>
+    </span>
+  )
+}
+
+function BranchList({ selector }: { selector: BranchSelector }) {
+  const { data, newName, setNewName, setDeleting, create } = selector
+  const onMain = !data?.current
+  const branches = data?.branches ?? []
+  const trimmed = newName.trim()
+
+  return (
+    <>
+      <div className="border-b px-3 py-2 text-xs text-foreground-light">
+        Each branch is a separate deployment with its own database, storage and Studio.
+      </div>
+      <ul className="max-h-72 overflow-y-auto py-1">
+        <BranchRow
+          name={MAIN}
+          isCurrent={onMain}
+          href={onMain ? undefined : studioUrl(data?.parent?.host)}
+        />
+        {branches.map((branch) => (
+          <BranchRow
+            key={branch.name}
+            name={branch.name}
+            isCurrent={branch.name === data?.current}
+            href={branch.name === data?.current ? undefined : studioUrl(branch.host)}
+            starting={!branch.host}
+            onDelete={branch.name === data?.current ? undefined : () => setDeleting(branch)}
+          />
+        ))}
+      </ul>
+      {onMain && (
+        <form
+          className="flex items-center gap-2 border-t p-3"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (trimmed) create.mutate(trimmed)
+          }}
+        >
+          <Input
+            value={newName}
+            onChange={(event) => setNewName(event.target.value)}
+            placeholder="New branch name"
+            className="h-8"
+          />
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={create.isPending}
+            disabled={!trimmed || create.isPending}
+          >
+            Create branch
+          </Button>
+        </form>
+      )}
+    </>
+  )
+}
+
+function DeleteBranchModal({ selector }: { selector: BranchSelector }) {
+  const { deleting, setDeleting, remove } = selector
+  return (
+    <ConfirmationModal
+      variant="destructive"
+      visible={deleting !== undefined}
+      title="Delete this branch"
+      confirmLabel="Delete branch"
+      loading={remove.isPending}
+      onCancel={() => setDeleting(undefined)}
+      onConfirm={() => deleting && remove.mutate(deleting.name)}
+    >
+      <p className="text-sm text-foreground-light">
+        The branch <span className="text-foreground">{deleting?.name}</span>, its database and its
+        storage are removed. This cannot be undone.
+      </p>
+    </ConfirmationModal>
+  )
+}
+
+/**
+ * Branch selector for the desktop header of self-hosted Studio, next to the project name. A
+ * branch is a separate deployment with its own Studio, so picking one opens that Studio.
+ * Renders nothing when the platform does not offer branches.
+ */
+export function SelfHostedBranchDropdown() {
+  const selector = useSelfHostedBranches()
+  const { data, open, setOpen } = selector
+  if (!data?.enabled) return null
+
+  return (
+    <>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
+        <PopoverTrigger asChild>
+          <Button
+            type="text"
+            size="tiny"
+            className="ml-1 px-1"
+            aria-label="Branches"
+            iconRight={<ChevronsUpDown className="text-foreground-lighter" />}
+          >
+            <BranchChip name={data.current ?? MAIN} />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-96 p-0" side="bottom" align="start">
+          <BranchList selector={selector} />
+        </PopoverContent>
+      </Popover>
+      <DeleteBranchModal selector={selector} />
+    </>
+  )
+}
+
+/** The same selector in the mobile navigation, where it also carries the project name. */
+export function SelfHostedBranchSelector({ projectName }: { projectName: string }) {
+  const selector = useSelfHostedBranches()
+  const { data, open, setOpen } = selector
+
   if (!data?.enabled) {
     return (
       <SidebarMenu>
@@ -109,11 +233,6 @@ export function SelfHostedBranchSelector({ projectName }: { projectName: string 
     )
   }
 
-  const current = data.current ?? MAIN
-  const onMain = !data.current
-  const branches = data.branches ?? []
-  const trimmed = newName.trim()
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -121,75 +240,16 @@ export function SelfHostedBranchSelector({ projectName }: { projectName: string 
           <PopoverTrigger asChild>
             <SidebarMenuButton className="flex items-center gap-2 text-sm text-foreground">
               <span className="truncate">{projectName}</span>
-              <span className="flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs text-foreground-light">
-                <GitBranch className="size-3 shrink-0" strokeWidth={1.5} />
-                <span className="max-w-32 truncate">{current}</span>
-              </span>
+              <BranchChip name={data.current ?? MAIN} />
               <ChevronsUpDown className="size-3 shrink-0 text-foreground-lighter" />
             </SidebarMenuButton>
           </PopoverTrigger>
           <PopoverContent className="w-96 p-0" side="bottom" align="start">
-            <div className="border-b px-3 py-2 text-xs text-foreground-light">
-              Each branch is a separate deployment with its own database, storage and Studio.
-            </div>
-            <ul className="max-h-72 overflow-y-auto py-1">
-              <BranchRow
-                name={MAIN}
-                isCurrent={onMain}
-                href={onMain ? undefined : studioUrl(data.parent?.host)}
-              />
-              {branches.map((branch) => (
-                <BranchRow
-                  key={branch.name}
-                  name={branch.name}
-                  isCurrent={branch.name === data.current}
-                  href={branch.name === data.current ? undefined : studioUrl(branch.host)}
-                  starting={!branch.host}
-                  onDelete={branch.name === data.current ? undefined : () => setDeleting(branch)}
-                />
-              ))}
-            </ul>
-            {onMain && (
-              <form
-                className="flex items-center gap-2 border-t p-3"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (trimmed) create.mutate(trimmed)
-                }}
-              >
-                <Input
-                  value={newName}
-                  onChange={(event) => setNewName(event.target.value)}
-                  placeholder="New branch name"
-                  className="h-8"
-                />
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={create.isPending}
-                  disabled={!trimmed || create.isPending}
-                >
-                  Create branch
-                </Button>
-              </form>
-            )}
+            <BranchList selector={selector} />
           </PopoverContent>
         </Popover>
       </SidebarMenuItem>
-      <ConfirmationModal
-        variant="destructive"
-        visible={deleting !== undefined}
-        title="Delete this branch"
-        confirmLabel="Delete branch"
-        loading={remove.isPending}
-        onCancel={() => setDeleting(undefined)}
-        onConfirm={() => deleting && remove.mutate(deleting.name)}
-      >
-        <p className="text-sm text-foreground-light">
-          The branch <span className="text-foreground">{deleting?.name}</span>, its database and its
-          storage are removed. This cannot be undone.
-        </p>
-      </ConfirmationModal>
+      <DeleteBranchModal selector={selector} />
     </SidebarMenu>
   )
 }

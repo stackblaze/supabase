@@ -24,6 +24,7 @@ import { BranchDropdown } from '@/components/layouts/AppLayout/BranchDropdown'
 import { InlineEditorButton } from '@/components/layouts/AppLayout/InlineEditorButton'
 import { OrganizationDropdown } from '@/components/layouts/AppLayout/OrganizationDropdown'
 import { ProjectDropdown } from '@/components/layouts/AppLayout/ProjectDropdown'
+import { SelfHostedBranchDropdown } from '@/components/layouts/Navigation/NavigationBar/SelfHostedBranchSelector'
 import { HelpButton } from '@/components/ui/HelpPanel/HelpButton'
 import { getResourcesExceededLimitsOrg } from '@/components/ui/OveragesBanner/OveragesBanner.utils'
 import { useOrgUsageQuery } from '@/data/usage/org-usage-query'
@@ -181,6 +182,7 @@ export const LayoutHeader = ({
                         <BranchDropdown />
                       </>
                     )}
+                    {selectedProject && !IS_PLATFORM && <SelfHostedBranchDropdown />}
                   </motion.div>
                 )}
               </AnimatePresence>
