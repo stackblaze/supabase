@@ -59,6 +59,7 @@ const ProjectSettings: NextPageWithLayout = () => {
           <>
             <Project />
             <ServiceVersionsSection />
+            {isBranch ? <DeleteBranchPanel /> : <DeleteProjectPanel />}
           </>
         )}
         {IS_PLATFORM && (
