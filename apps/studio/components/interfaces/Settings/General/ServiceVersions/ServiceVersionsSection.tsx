@@ -79,7 +79,8 @@ export const ServiceVersionsSection = () => {
   const { current_app_version, current_app_version_release_channel, latest_app_version } =
     data || {}
 
-  const isOnLatestVersion = current_app_version === latest_app_version
+  // Self-hosted has no upgrade information to compare against.
+  const isOnLatestVersion = IS_PLATFORM && current_app_version === latest_app_version
   const currentPgVersion = (current_app_version ?? '')
     .split('supabase-postgres-')[1]
     ?.replace('-orioledb', '')
@@ -100,7 +101,9 @@ export const ServiceVersionsSection = () => {
         <PageSectionSummary>
           <PageSectionTitle>Service versions</PageSectionTitle>
           <PageSectionDescription>
-            Service versions and upgrade eligibility for your provisioned instance.
+            {IS_PLATFORM
+              ? 'Service versions and upgrade eligibility for your provisioned instance.'
+              : 'Versions of the services running for this project.'}
           </PageSectionDescription>
         </PageSectionSummary>
       </PageSectionMeta>
