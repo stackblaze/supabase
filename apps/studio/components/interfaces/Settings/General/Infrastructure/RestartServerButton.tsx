@@ -21,7 +21,7 @@ import { useProjectRestartServicesMutation } from '@/data/projects/project-resta
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
 import { useIsProjectActive, useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
-import { PROJECT_STATUS } from '@/lib/constants'
+import { IS_PLATFORM, PROJECT_STATUS } from '@/lib/constants'
 import { type ResponseError } from '@/types'
 
 export const RestartServerButton = () => {
@@ -69,7 +69,9 @@ export const RestartServerButton = () => {
     })
 
   const isLoading = isRestartingProject || isRestartingServices
-  const hasRestartDropdown = canRestartProject && canRestart && !projectRestartDisabled
+  // Self-hosted: the database is the platform's shared server and cannot be rebooted from here.
+  const hasRestartDropdown =
+    IS_PLATFORM && canRestartProject && canRestart && !projectRestartDisabled
 
   const requestProjectRestart = () => {
     if (!canRestartProject) {

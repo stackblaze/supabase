@@ -39,6 +39,7 @@ import {
   useIsOrioleDb,
   useSelectedProjectQuery,
 } from '@/hooks/misc/useSelectedProject'
+import { IS_PLATFORM } from '@/lib/constants'
 
 export const ServiceVersionsSection = () => {
   const { ref } = useParams()
@@ -58,9 +59,13 @@ export const ServiceVersionsSection = () => {
     isPending: isLoadingUpgradeEligibility,
     isError: isErrorUpgradeEligibility,
     isSuccess: isSuccessUpgradeEligibility,
-  } = useProjectUpgradeEligibilityQuery({
-    projectRef: ref,
-  })
+  } = useProjectUpgradeEligibilityQuery(
+    {
+      projectRef: ref,
+    },
+    // Self-hosted: Postgres is upgraded by the hosting platform, there is nothing to check.
+    { enabled: IS_PLATFORM }
+  )
 
   const {
     data: serviceVersions,
@@ -111,11 +116,11 @@ export const ServiceVersionsSection = () => {
               />
             ) : (
               <>
-                {isLoadingUpgradeEligibility && <GenericSkeletonLoader />}
+                {IS_PLATFORM && isLoadingUpgradeEligibility && <GenericSkeletonLoader />}
                 {isErrorUpgradeEligibility && (
                   <AlertError error={error} subject="Failed to retrieve Postgres version" />
                 )}
-                {isSuccessUpgradeEligibility && (
+                {(isSuccessUpgradeEligibility || !IS_PLATFORM) && (
                   <>
                     {isLoadingServiceVersions && <GenericSkeletonLoader />}
                     {isErrorServiceVersions && (

@@ -30,6 +30,8 @@ const ProjectSettings: NextPageWithLayout = () => {
   const { data: selectedOrganization } = useSelectedOrganizationQuery()
 
   const isBranch = !!project?.parent_project_ref
+  // Self-hosted on a hosting platform: availability and versions are answered by it.
+  const isPlatformManaged = !IS_PLATFORM && project?.is_platform_managed === true
   const { projectsTransfer: projectTransferEnabled, projectSettingsCustomDomains } =
     useIsFeatureEnabled(['projects:transfer', 'project_settings:custom_domains'])
 
@@ -53,6 +55,12 @@ const ProjectSettings: NextPageWithLayout = () => {
       </PageHeader>
       <PageContainer size="small">
         <General />
+        {isPlatformManaged && (
+          <>
+            <Project />
+            <ServiceVersionsSection />
+          </>
+        )}
         {IS_PLATFORM && (
           <>
             <Project />
