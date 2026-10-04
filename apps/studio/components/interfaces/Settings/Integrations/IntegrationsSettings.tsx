@@ -8,7 +8,7 @@ import { SidePanelVercelProjectLinker } from '@/components/interfaces/Organizati
 import { InlineLink } from '@/components/ui/InlineLink'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
-import { BASE_PATH } from '@/lib/constants'
+import { BASE_PATH, IS_PLATFORM } from '@/lib/constants'
 
 export const IntegrationImageHandler = ({ title }: { title: 'vercel' | 'github' | 'aws' }) => {
   return (
@@ -89,14 +89,14 @@ export const IntegrationSettings = () => {
 
       <GitHubSection isProjectScoped={true} />
 
-      {showVercelIntegration && (
+      {IS_PLATFORM && showVercelIntegration && (
         <>
           <VercelSection isProjectScoped={true} />
           <SidePanelVercelProjectLinker />
         </>
       )}
 
-      {showAWSPrivateLink && <AWSPrivateLinkSection />}
+      {IS_PLATFORM && showAWSPrivateLink && <AWSPrivateLinkSection />}
     </>
   )
 }
