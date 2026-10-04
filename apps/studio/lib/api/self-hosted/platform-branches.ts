@@ -17,6 +17,18 @@ type PlatformBranch = {
   host: string | null
   createdAt?: string | null
   status?: 'creating' | 'ready'
+  /** Set on branches the platform created for a pull request of the connected repository. */
+  prNumber?: number
+  gitBranch?: string
+  /** State of the latest run applying the repository's migrations to the branch. */
+  migration?: 'none' | 'running' | 'passed' | 'failed'
+}
+
+const branchStatus = (ready: boolean, migration: PlatformBranch['migration']) => {
+  if (!ready) return 'CREATING_PROJECT' as const
+  if (migration === 'running') return 'RUNNING_MIGRATIONS' as const
+  if (migration === 'failed') return 'MIGRATIONS_FAILED' as const
+  return 'FUNCTIONS_DEPLOYED' as const
 }
 
 type PlatformBranches = {
@@ -88,11 +100,13 @@ function toNative(list: PlatformBranches, productionGitBranch?: string): NativeB
       parent_project_ref: mainRef,
       is_default: false,
       persistent: false,
-      status: ready ? 'FUNCTIONS_DEPLOYED' : 'CREATING_PROJECT',
+      status: branchStatus(ready, branch.migration),
       preview_project_status: ready ? 'ACTIVE_HEALTHY' : 'COMING_UP',
       created_at: created,
       updated_at: created,
       with_data: false,
+      ...(branch.prNumber ? { pr_number: branch.prNumber } : {}),
+      ...(branch.gitBranch ? { git_branch: branch.gitBranch } : {}),
       ...(isSelf ? {} : { studio_url: studioUrl(branch.host) }),
     }
   })
