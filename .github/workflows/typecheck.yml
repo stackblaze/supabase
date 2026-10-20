@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   typecheck:
-    runs-on: [self-hosted, us-east-1]
+    runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=4096
 

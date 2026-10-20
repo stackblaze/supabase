@@ -33,7 +33,7 @@ permissions:
 jobs:
   knip:
     # Uses larger hosted runner as it significantly decreases build times
-    runs-on: [self-hosted, us-east-1]
+    runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: --max-old-space-size=6144
 
