@@ -29,6 +29,7 @@ import {
   isKnownAssistantModelId,
   type AssistantModelId,
 } from '@/lib/ai/model.utils'
+import { aiErrorMessage, stackblazeAiConfig } from '@/lib/ai/stackblaze-proxy'
 import { getTools } from '@/lib/ai/tools'
 import { encodeNotebookToolError } from '@/lib/ai/tools/notebook-tool-error'
 import { apiWrapper } from '@/lib/api/apiWrapper'
@@ -98,6 +99,9 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
 
   const requestedModel: AssistantModelId | undefined =
     rawRequestedModel && isKnownAssistantModelId(rawRequestedModel) ? rawRequestedModel : undefined
+  // Self-hosted on the StackBlaze platform the picker offers the AI proxy's own model ids.
+  const proxyModelId =
+    rawRequestedModel && !requestedModel && stackblazeAiConfig() ? rawRequestedModel : undefined
 
   const messagesValidation = await safeValidateUIMessages({
     messages: rawMessages,
@@ -160,6 +164,7 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
   } = await getModel({
     provider: 'openai',
     modelEntry: getAssistantModelEntry(effectiveModel),
+    proxyModelId,
   })
 
   if (modelError) {
@@ -260,7 +265,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
         }
 
         if (error instanceof Error) {
-          return error.message
+          // The provider's own message; out of credits on StackBlaze adds a billing link.
+          return aiErrorMessage(error)
         }
 
         return JSON.stringify(error)

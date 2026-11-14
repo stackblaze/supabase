@@ -4,13 +4,22 @@ import { LanguageModel } from 'ai'
 import { checkAwsCredentials, createRoutedBedrock } from './bedrock'
 import {
   BedrockModel,
+  DEFAULT_COMPLETION_MODEL,
   getDefaultModelForProvider,
+  LOGS_REWRITE_MODEL,
   Model,
   OpenAIModelEntry,
   OpenAIModelId,
   ProviderModelConfig,
   PROVIDERS,
 } from './model.utils'
+import {
+  createStackblazeProvider,
+  listProxyModels,
+  pickProxyModel,
+  proxyReasoningEffort,
+  stackblazeAiConfig,
+} from './stackblaze-proxy'
 
 type ProviderOptions = Record<string, any>
 type SystemProviderOptions = Record<string, any>
@@ -41,6 +50,11 @@ export type GetModelParams =
        * fallbacks) before calling getModel.
        */
       modelEntry: OpenAIModelEntry
+      /**
+       * Self-hosted on the StackBlaze platform: a model id the AI proxy lists, chosen in the
+       * Assistant's model picker. Ignored unless the proxy allows it.
+       */
+      proxyModelId?: string
     }
   | {
       provider: 'bedrock'
@@ -84,6 +98,38 @@ export async function getModel(params: GetModelParams): Promise<ModelResponse> {
   }
 
   if (provider === 'openai') {
+    const stackblaze = stackblazeAiConfig()
+    if (stackblaze) {
+      // Self-hosted on the StackBlaze platform: the platform's AI proxy, paid from the
+      // workspace's credits. Studio's OpenAI model ids are mapped onto the models it allows.
+      let allowed: string[]
+      try {
+        allowed = await listProxyModels(stackblaze)
+      } catch (error) {
+        return { error: error instanceof Error ? error : new Error(String(error)) }
+      }
+      const isFastEntry =
+        modelEntry === DEFAULT_COMPLETION_MODEL || modelEntry === LOGS_REWRITE_MODEL
+      const proxyModelId = pickProxyModel(
+        allowed,
+        isFastEntry ? 'fast' : 'default',
+        params.provider === 'openai' ? params.proxyModelId : undefined
+      )
+      if (!proxyModelId) {
+        return { error: new Error('The StackBlaze AI proxy offers no models for this workspace') }
+      }
+      const reasoningEffort = proxyReasoningEffort(modelEntry?.reasoningEffort)
+      return {
+        modelParams: {
+          model: createStackblazeProvider(stackblaze)(proxyModelId),
+          providerOptions: {
+            // The proxy (OpenRouter) is stateless: never ask it to store responses.
+            openai: { store: false, ...(reasoningEffort ? { reasoningEffort } : {}) },
+          },
+        },
+      }
+    }
+
     if (!process.env.OPENAI_API_KEY) {
       return { error: new Error('OPENAI_API_KEY not available') }
     }

@@ -13,6 +13,7 @@ import { isExplorerEnabled } from '@/lib/ai/is-explorer-enabled'
 import { getModel } from '@/lib/ai/model'
 import { DEFAULT_COMPLETION_MODEL } from '@/lib/ai/model.utils'
 import { RLS_PROMPT } from '@/lib/ai/prompts'
+import { proxyErrorResponse } from '@/lib/ai/stackblaze-proxy'
 import { withoutApprovalTools } from '@/lib/ai/tool-filter'
 import { getTools } from '@/lib/ai/tools'
 import { apiWrapper } from '@/lib/api/apiWrapper'
@@ -170,6 +171,9 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
       toolsAbortController.abort()
     }
   } catch (error) {
+    // The StackBlaze AI proxy's own message (e.g. out of credits), with its status.
+    const proxied = proxyErrorResponse(error)
+    if (proxied) return res.status(proxied.status).json({ error: proxied.message })
     if (error instanceof Error) {
       console.error(`AI policy generation failed: ${error.message}`)
       return res.status(500).json({

@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { NextApiRequest, NextApiResponse } from 'next'
 
 import { toWebHandler } from '@/compat/next/api'
+import { stackblazeAiConfig } from '@/lib/ai/stackblaze-proxy'
 import { apiWrapper } from '@/lib/api/apiWrapper'
 
 const wrapper = (req: NextApiRequest, res: NextApiResponse) =>
@@ -20,6 +21,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 const handleGet = async (_req: NextApiRequest, res: NextApiResponse) => {
+  // On the StackBlaze platform the AI proxy stands in for an OpenAI key.
+  if (stackblazeAiConfig()) {
+    return res.status(200).json({ hasKey: true, provider: 'stackblaze' })
+  }
   if (process.env.OPENAI_API_KEY) {
     return res.status(200).json({ hasKey: true })
   } else {

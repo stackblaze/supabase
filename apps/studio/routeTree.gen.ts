@@ -62,6 +62,7 @@ import { Route as AppSupportLinkRouteImport } from './routes/_app/support/link'
 import { Route as AppSupportNewRouteImport } from './routes/_app/support/new'
 import { Route as AuthCliLoginRouteImport } from './routes/_auth/cli/login'
 import { Route as ApiAiDocsRouteImport } from './routes/api/ai/docs'
+import { Route as ApiAiModelsRouteImport } from './routes/api/ai/models'
 import { Route as ApiConnectIndexRouteImport } from './routes/api/connect/index'
 import { Route as ApiContentGraphqlRouteImport } from './routes/api/content/graphql'
 import { Route as ApiEdgeFunctionsTestRouteImport } from './routes/api/edge-functions/test'
@@ -633,6 +634,11 @@ const AuthCliLoginRoute = AuthCliLoginRouteImport.update({
 const ApiAiDocsRoute = ApiAiDocsRouteImport.update({
   id: '/api/ai/docs',
   path: '/api/ai/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiModelsRoute = ApiAiModelsRouteImport.update({
+  id: '/api/ai/models',
+  path: '/api/ai/models',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiConnectIndexRoute = ApiConnectIndexRouteImport.update({
@@ -2424,6 +2430,7 @@ export interface FileRoutesByFullPath {
   '/support/new': typeof AppSupportNewRoute
   '/cli/login': typeof AuthCliLoginRoute
   '/api/ai/docs': typeof ApiAiDocsRoute
+  '/api/ai/models': typeof ApiAiModelsRoute
   '/api/content/graphql': typeof ApiContentGraphqlRoute
   '/api/edge-functions/test': typeof ApiEdgeFunctionsTestRoute
   '/api/integrations/stripe-sync': typeof ApiIntegrationsStripeSyncRoute
@@ -2780,6 +2787,7 @@ export interface FileRoutesByTo {
   '/support/new': typeof AppSupportNewRoute
   '/cli/login': typeof AuthCliLoginRoute
   '/api/ai/docs': typeof ApiAiDocsRoute
+  '/api/ai/models': typeof ApiAiModelsRoute
   '/api/content/graphql': typeof ApiContentGraphqlRoute
   '/api/edge-functions/test': typeof ApiEdgeFunctionsTestRoute
   '/api/integrations/stripe-sync': typeof ApiIntegrationsStripeSyncRoute
@@ -3127,6 +3135,7 @@ export interface FileRoutesById {
   '/_app/support/new': typeof AppSupportNewRoute
   '/_auth/cli/login': typeof AuthCliLoginRoute
   '/api/ai/docs': typeof ApiAiDocsRoute
+  '/api/ai/models': typeof ApiAiModelsRoute
   '/api/content/graphql': typeof ApiContentGraphqlRoute
   '/api/edge-functions/test': typeof ApiEdgeFunctionsTestRoute
   '/api/integrations/stripe-sync': typeof ApiIntegrationsStripeSyncRoute
@@ -3487,6 +3496,7 @@ export interface FileRouteTypes {
     | '/support/new'
     | '/cli/login'
     | '/api/ai/docs'
+    | '/api/ai/models'
     | '/api/content/graphql'
     | '/api/edge-functions/test'
     | '/api/integrations/stripe-sync'
@@ -3843,6 +3853,7 @@ export interface FileRouteTypes {
     | '/support/new'
     | '/cli/login'
     | '/api/ai/docs'
+    | '/api/ai/models'
     | '/api/content/graphql'
     | '/api/edge-functions/test'
     | '/api/integrations/stripe-sync'
@@ -4189,6 +4200,7 @@ export interface FileRouteTypes {
     | '/_app/support/new'
     | '/_auth/cli/login'
     | '/api/ai/docs'
+    | '/api/ai/models'
     | '/api/content/graphql'
     | '/api/edge-functions/test'
     | '/api/integrations/stripe-sync'
@@ -4531,6 +4543,7 @@ export interface RootRouteChildren {
   ProjectChar91_Char93Route: typeof ProjectChar91_Char93RouteWithChildren
   SupportCsatRoute: typeof SupportCsatRoute
   ApiAiDocsRoute: typeof ApiAiDocsRoute
+  ApiAiModelsRoute: typeof ApiAiModelsRoute
   ApiContentGraphqlRoute: typeof ApiContentGraphqlRoute
   ApiEdgeFunctionsTestRoute: typeof ApiEdgeFunctionsTestRoute
   ApiIntegrationsStripeSyncRoute: typeof ApiIntegrationsStripeSyncRoute
@@ -5022,6 +5035,13 @@ declare module '@tanstack/react-router' {
       path: '/api/ai/docs'
       fullPath: '/api/ai/docs'
       preLoaderRoute: typeof ApiAiDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/models': {
+      id: '/api/ai/models'
+      path: '/api/ai/models'
+      fullPath: '/api/ai/models'
+      preLoaderRoute: typeof ApiAiModelsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/connect/': {
@@ -7954,6 +7974,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectChar91_Char93Route: ProjectChar91_Char93RouteWithChildren,
   SupportCsatRoute: SupportCsatRoute,
   ApiAiDocsRoute: ApiAiDocsRoute,
+  ApiAiModelsRoute: ApiAiModelsRoute,
   ApiContentGraphqlRoute: ApiContentGraphqlRoute,
   ApiEdgeFunctionsTestRoute: ApiEdgeFunctionsTestRoute,
   ApiIntegrationsStripeSyncRoute: ApiIntegrationsStripeSyncRoute,
