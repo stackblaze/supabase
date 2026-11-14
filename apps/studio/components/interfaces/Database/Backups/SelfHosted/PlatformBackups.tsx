@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { DatabaseIcon, Loader2Icon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Badge,
   Button,
   Card,
   CardContent,
+  Input,
   Switch,
   Table,
   TableBody,
@@ -27,6 +28,13 @@ import {
 } from 'ui-patterns/PageSection'
 import { GenericSkeletonLoader } from 'ui-patterns/ShimmeringLoader'
 
+import {
+  clearPendingRestore,
+  readPendingRestore,
+  restoreOutcome,
+  savePendingRestore,
+  type PendingRestore,
+} from './in-place-restore'
 import { BASE_PATH } from '@/lib/constants'
 
 const API = `${BASE_PATH}/api/self-hosted/backups`
@@ -58,7 +66,7 @@ async function getJson<T>(url: string, fallback: string): Promise<T> {
   return (await res.json()) as T
 }
 
-type RestoreCopy = { job: string; from: string; to: string; displayName?: string }
+type RestoreStarted = { job: string; instance?: string; key?: string }
 
 async function sendJson<T>(
   url: string,
@@ -95,22 +103,42 @@ const cadenceLabel = (id: string) =>
 
 /**
  * The platform's backups of this deployment's database: scheduled dumps kept
- * in the region bucket, a "Back up now" button, restore (into a NEW database
- * next to this one; nothing running changes), delete, and the dump schedule.
+ * in the region bucket, a "Back up now" button, restore (over the live
+ * database, like the Supabase platform, confirmed by typing its name; the
+ * whole project, Studio included, is down while it runs), delete, and the
+ * dump schedule.
  */
 export const PlatformBackups = () => {
   const queryClient = useQueryClient()
   const [restoring, setRestoring] = useState<Dump>()
-  // The database the last restore created, shown until dismissed.
-  const [restoredTo, setRestoredTo] = useState<string>()
+  const [confirmText, setConfirmText] = useState('')
+  // The in-place restore started from this browser, kept across Studio going down and reloads.
+  const [pending, setPending] = useState<PendingRestore | undefined>(() => readPendingRestore())
   const [deleting, setDeleting] = useState<Dump>()
 
   const backups = useQuery({
     queryKey: ['self-hosted', 'platform-backups'],
     queryFn: () => getJson<Backups>(API, 'Could not load backups'),
+    // While a restore runs Studio itself is stopped: keep polling until it answers again.
+    retry: pending ? true : 3,
     refetchInterval: (query) =>
-      (query.state.data?.jobs ?? []).some((j) => j.phase === 'Running') ? 5000 : 60000,
+      pending || (query.state.data?.jobs ?? []).some((j) => j.phase === 'Running') ? 5000 : 60000,
   })
+  const outcome = pending ? restoreOutcome(pending, backups.data?.jobs) : undefined
+
+  // Once the restore has ended, everything Studio cached describes the old database.
+  const refreshedAfterRestore = useRef(false)
+  useEffect(() => {
+    if (!outcome || outcome === 'running' || refreshedAfterRestore.current) return
+    refreshedAfterRestore.current = true
+    queryClient.invalidateQueries()
+  }, [outcome, queryClient])
+
+  const dismissRestore = () => {
+    clearPendingRestore()
+    setPending(undefined)
+    refreshedAfterRestore.current = false
+  }
   const schedule = useQuery({
     queryKey: ['self-hosted', 'platform-backup-schedule'],
     queryFn: () => getJson<Schedule>(`${API}/schedule`, 'Could not load the schedule'),
@@ -131,17 +159,23 @@ export const PlatformBackups = () => {
   })
   const restore = useMutation({
     mutationFn: (dump: Dump) =>
-      sendJson<RestoreCopy>(
+      sendJson<RestoreStarted>(
         `${API}/restore`,
-        { method: 'POST', body: JSON.stringify({ key: dump.key }) },
+        { method: 'POST', body: JSON.stringify({ key: dump.key, confirm: confirmText }) },
         'Could not start the restore'
       ),
-    onSuccess: (result) => {
-      const name = result?.displayName || result?.to || 'a new database'
-      toast.success(`Restoring into ${name}`)
-      setRestoredTo(name)
+    onSuccess: (result, dump) => {
+      const started: PendingRestore = {
+        job: result?.job ?? '',
+        instance: result?.instance ?? confirmText,
+        backup: dump.key,
+        startedAt: new Date().toISOString(),
+      }
+      savePendingRestore(started)
+      refreshedAfterRestore.current = false
+      setPending(started)
       setRestoring(undefined)
-      invalidate()
+      setConfirmText('')
     },
     onError: (e: Error) => toast.error(e.message),
   })
@@ -176,6 +210,33 @@ export const PlatformBackups = () => {
     onError: (e: Error) => toast.error(e.message),
   })
 
+  if (pending && outcome === 'running') {
+    return (
+      <Admonition
+        type="warning"
+        title="Restoring… the project will be back shortly"
+        description={
+          <div className="flex flex-col gap-2">
+            <p>
+              The backup <span className="font-mono text-xs">{fileName(pending.backup)}</span> is
+              replacing <span className="text-foreground">{pending.instance}</span>. Every service
+              of this project, Studio included, is stopped while it runs and starts again when it
+              finishes.
+            </p>
+            <p className="flex items-center gap-2">
+              <Loader2Icon size={14} className="animate-spin" />
+              <span>
+                {backups.isError || backups.isFetching
+                  ? 'Waiting for Studio to come back…'
+                  : 'Restore running…'}
+              </span>
+            </p>
+            <p>This page updates by itself; reloading it is safe.</p>
+          </div>
+        }
+      />
+    )
+  }
   if (backups.isPending) return <GenericSkeletonLoader />
   if (backups.isError) {
     return (
@@ -210,17 +271,40 @@ export const PlatformBackups = () => {
           </PageSectionSummary>
           <p className="text-sm text-foreground-light">
             Full dumps of <span className="text-foreground">{instance}</span> taken by the platform
-            on the schedule below and kept in the region's backup bucket. Restoring loads the chosen
-            dump into a new database next to this one; nothing running changes.
+            on the schedule below and kept in the region's backup bucket. Restoring replaces the
+            live database with the chosen dump.
           </p>
         </PageSectionMeta>
         <PageSectionContent>
-          {restoredTo && (
+          {pending && outcome !== 'running' && (
             <Admonition
-              type="note"
+              type={
+                outcome === 'completed' ? 'note' : outcome === 'failed' ? 'destructive' : 'warning'
+              }
               className="mb-4"
-              title={`Restoring into the new database ${restoredTo}`}
-              description="This project keeps using its current database. Connect the new one from the StackBlaze dashboard if you want to use it."
+              title={
+                outcome === 'completed'
+                  ? 'Restore completed'
+                  : outcome === 'failed'
+                    ? 'Restore failed'
+                    : 'Restore status unknown'
+              }
+              description={
+                <div className="flex flex-col gap-2">
+                  <p>
+                    {outcome === 'completed'
+                      ? `${pending.instance} now holds the backup ${fileName(pending.backup)}.`
+                      : outcome === 'failed'
+                        ? `The restore of ${fileName(pending.backup)} did not finish. The project's services were started again; see the job below.`
+                        : `The restore job ${pending.job} is no longer listed. Check the database before relying on it.`}
+                  </p>
+                  <div>
+                    <Button variant="default" size="tiny" onClick={dismissRestore}>
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+              }
             />
           )}
           <div className="flex flex-col gap-4">
@@ -283,7 +367,10 @@ export const PlatformBackups = () => {
                               variant="default"
                               size="tiny"
                               icon={<RotateCcwIcon />}
-                              onClick={() => setRestoring(dump)}
+                              onClick={() => {
+                                setConfirmText('')
+                                setRestoring(dump)
+                              }}
                             >
                               Restore
                             </Button>
@@ -411,25 +498,35 @@ export const PlatformBackups = () => {
       </PageSection>
 
       <ConfirmationModal
+        variant="destructive"
         visible={restoring !== undefined}
-        title="Restore into a new database"
+        title="Restore this backup"
         confirmLabel="Restore"
         loading={restore.isPending}
+        disabled={confirmText !== instance}
         onCancel={() => setRestoring(undefined)}
         onConfirm={() => restoring && restore.mutate(restoring)}
       >
         <div className="flex flex-col gap-3 text-sm text-foreground-light">
           <p>
-            The backup from{' '}
-            <span className="text-foreground">{formatTime(restoring?.lastModified)}</span> is
-            restored into a <span className="text-foreground">new database</span> next to{' '}
-            <span className="text-foreground">{instance}</span>.
+            The database <span className="text-foreground">{instance}</span> is replaced with the
+            backup from{' '}
+            <span className="text-foreground">{formatTime(restoring?.lastModified)}</span>. Any
+            changes made after that backup are lost.
           </p>
           <p>
-            Nothing running changes: this project keeps using{' '}
-            <span className="text-foreground">{instance}</span>. Connect the new database from the
-            StackBlaze dashboard if you want to use it.
+            The project, Studio included, is unavailable while the restore runs. It comes back by
+            itself when the restore finishes.
           </p>
+          <p>
+            Type <span className="font-mono text-foreground">{instance}</span> to confirm.
+          </p>
+          <Input
+            aria-label="Database name"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={instance}
+          />
         </div>
       </ConfirmationModal>
       <ConfirmationModal

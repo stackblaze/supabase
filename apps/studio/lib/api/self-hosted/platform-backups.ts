@@ -94,21 +94,25 @@ const dbPath = () => `${base()}/db/${encodeURIComponent(env().instance)}`
 
 export const listBackups = () => call<PlatformBackups>('GET', dbPath())
 export const backupNow = () => call<{ ok: boolean; job: string }>('POST', `${dbPath()}/dump`)
-/** What a restore into a new database started: `to` is the new database's instance. */
-export type RestoreCopy = {
+/** What an in-place restore started: the restore Job, whose status is in the jobs list. */
+export type RestoreInPlace = {
   ok: boolean
   job: string
-  from: string
-  to: string
-  displayName?: string
+  jobNamespace?: string
+  instance?: string
+  key?: string
 }
 /**
- * Restore one dump into a NEW database next to this one (the platform no longer restores in
- * place, kubero-server #2045). Nothing that runs is changed; the new database is connected from
- * the platform's dashboard if wanted.
+ * Restore one dump OVER the live database, like the Supabase platform (kubero-server #2356): the
+ * platform stops every app of this deployment, Studio included, restores with
+ * `pg_restore --clean --if-exists`, and starts them again. No safety dump is taken. `confirm`
+ * must be the database's name. Only Studio's app token may call it.
  */
-export const restoreBackupAsNew = (key: string) =>
-  call<RestoreCopy>('POST', `${dbPath()}/restore-copy`, { backup: key })
+export const restoreBackup = (key: string) =>
+  call<RestoreInPlace>('POST', `${dbPath()}/restore-in-place`, {
+    backup: key,
+    confirm: env().instance,
+  })
 export const deleteBackup = (key: string) =>
   call<{ ok: boolean }>('DELETE', `${dbPath()}?key=${encodeURIComponent(key)}`)
 export const getSchedule = () => call<DumpSchedule>('GET', `${base()}/db-schedule`)
