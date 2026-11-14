@@ -6,6 +6,7 @@ import { createTool as createExecuteSqlTool } from './execute-sql.server'
 import { createTool as createLoadKnowledgeTool } from './load-knowledge.server'
 import { buildLocalTools } from './registry.server'
 import { createTool as createRenameChatTool } from './rename-chat.server'
+import { selfHostedFetcher } from './tool-sql.server'
 import type { ToolContext } from './types'
 import { unguarded } from '@/data/fetchers'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
@@ -145,7 +146,10 @@ describe('ai/tools core tools', () => {
           grant: unguarded.migrating,
         },
         undefined,
-        undefined
+        undefined,
+        // Self-hosted (the test default): the SQL runs through the self-hosted query path, not
+        // the relative /api URL, which does not resolve on the server.
+        selfHostedFetcher
       )
       expect(result).toEqual({ rows, totalRows: 1, optInLevel: 'schema' })
       expect((tools.execute_sql as any).toModelOutput({ output: result })).toEqual({
@@ -208,7 +212,8 @@ describe('ai/tools core tools', () => {
           grant: unguarded.migrating,
         },
         undefined,
-        undefined
+        undefined,
+        selfHostedFetcher
       )
       expect(result).toEqual({ rows, totalRows: 1, optInLevel: 'schema_and_log_and_data' })
       expect((tools.execute_sql as any).toModelOutput({ output: result })).toEqual({

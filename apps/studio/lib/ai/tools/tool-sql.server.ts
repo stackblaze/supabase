@@ -8,7 +8,8 @@ import { unguarded } from '@/data/fetchers'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
 import { executeQuery } from '@/lib/api/self-hosted/query'
 
-const selfHostedFetcher = async (args: Parameters<typeof executeQuery>[0]) => {
+/** `executeSql`'s fetcher for server-side tools off platform (see `runPgMetaQuery`). */
+export const selfHostedFetcher = async (args: Parameters<typeof executeQuery>[0]) => {
   const result = await executeQuery(args)
   return result.error ? { error: result.error } : { data: result.data }
 }
