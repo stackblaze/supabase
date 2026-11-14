@@ -41,7 +41,9 @@ describe('selfHostedSignInGate', () => {
   it('redirects pages to sign-in with a returnTo', async () => {
     const response = await selfHostedSignInGate(request('/project/default/editor?x=1'), '')
     expect(response?.status).toBe(307)
-    const location = new URL(response!.headers.get('location')!)
+    // Relative, so a gateway's upstream host never leaks into the redirect.
+    expect(response!.headers.get('location')).toMatch(/^\/sign-in\?/)
+    const location = new URL(response!.headers.get('location')!, 'http://public.example')
     expect(location.pathname).toBe('/sign-in')
     expect(location.searchParams.get('returnTo')).toBe('/project/default/editor?x=1')
   })
@@ -72,6 +74,8 @@ describe('selfHostedSignInGate', () => {
   it('works under a base path', async () => {
     expect(await selfHostedSignInGate(request('/dashboard/sign-in'), '/dashboard')).toBeUndefined()
     const response = await selfHostedSignInGate(request('/dashboard/project/default'), '/dashboard')
-    expect(new URL(response!.headers.get('location')!).pathname).toBe('/dashboard/sign-in')
+    expect(response!.headers.get('location')).toBe(
+      '/dashboard/sign-in?returnTo=%2Fproject%2Fdefault'
+    )
   })
 })

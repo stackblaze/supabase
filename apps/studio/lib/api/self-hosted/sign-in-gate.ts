@@ -59,8 +59,9 @@ export async function selfHostedSignInGate(
     return Response.json({ error: { message: 'Unauthorized' } }, { status: 401 })
   }
 
-  const signIn = new URL(`${basePath}/sign-in`, url)
+  // A relative Location: behind a gateway, the request URL carries the upstream service's
+  // host, not the public one, and the browser resolves a relative path against the page.
   const returnTo = `${pathname}${url.search}`
-  if (returnTo !== '/') signIn.searchParams.set('returnTo', returnTo)
-  return Response.redirect(signIn, 307)
+  const query = returnTo !== '/' ? `?${new URLSearchParams({ returnTo })}` : ''
+  return new Response(null, { status: 307, headers: { Location: `${basePath}/sign-in${query}` } })
 }
