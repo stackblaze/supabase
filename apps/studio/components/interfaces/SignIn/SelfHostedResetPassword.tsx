@@ -12,6 +12,7 @@ import z from 'zod'
 import { ForgotPasswordLayout } from '@/components/layouts/SignInLayout/ForgotPasswordLayout'
 import { fetchSelfHostedLoginStatus } from '@/hooks/misc/useSelfHostedLoginEnabled'
 import { BASE_PATH } from '@/lib/constants'
+import { enterStudio, SIGNED_IN_HOME } from '@/lib/self-hosted-sign-in-navigation'
 import type { NextPageWithLayout } from '@/types'
 
 const MIN_LENGTH = 8
@@ -68,7 +69,8 @@ export const SelfHostedResetPasswordPage: NextPageWithLayout = () => {
     if (res?.ok) {
       const { signedIn } = (await res.json().catch(() => ({}))) as { signedIn?: boolean }
       toast.success('Password updated')
-      await router.replace(signedIn ? '/project/default' : '/sign-in')
+      if (signedIn) enterStudio(SIGNED_IN_HOME)
+      else await router.replace('/sign-in')
       return
     }
     const message = await res
