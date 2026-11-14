@@ -11,6 +11,7 @@ import {
   proxyReasoningEffort,
   resetProxyModelsCache,
   stackblazeAiConfig,
+  StackblazeProxyError,
 } from './stackblaze-proxy'
 
 const ENV = {
@@ -145,6 +146,49 @@ describe('StackBlaze AI proxy', () => {
       if (saveKey === undefined) delete process.env.OPENAI_API_KEY
       else process.env.OPENAI_API_KEY = saveKey
     }
+  })
+
+  it('getModel returns the proxy refusal when the app token may not use AI', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: {
+            message:
+              'This app token may not use the AI model proxy (it lacks the `ai` capability).',
+            type: 'stackblaze_proxy',
+            code: 'token_scope_denied',
+          },
+        }),
+        { status: 403, headers: { 'content-type': 'application/json' } }
+      )
+    )
+
+    const result = await getModel({ provider: 'openai', modelEntry: ASSISTANT_MODELS[0] })
+
+    expect(result.error).toBeInstanceOf(StackblazeProxyError)
+    expect(proxyErrorResponse(result.error)).toEqual({
+      status: 403,
+      message: 'This app token may not use the AI model proxy (it lacks the `ai` capability).',
+    })
+  })
+
+  it('never passes a proxy 401 on to the browser', () => {
+    const invalid = new StackblazeProxyError('Missing, invalid or expired turn token.', 401)
+    expect(proxyErrorResponse(invalid)).toEqual({
+      status: 502,
+      message: 'Missing, invalid or expired turn token.',
+    })
+  })
+
+  it('adds the billing link when listing models is refused for credits', () => {
+    const paused = new StackblazeProxyError(
+      'This workspace is paused for billing.',
+      402,
+      'billing_paused'
+    )
+    expect(billingUrlFromAiError(aiErrorMessage(paused))).toBe(
+      'https://dashboard-dev.example.com/billing'
+    )
   })
 
   it('getModel keeps the OpenAI key path without a hosting platform', async () => {

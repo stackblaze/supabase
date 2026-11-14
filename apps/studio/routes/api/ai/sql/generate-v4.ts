@@ -29,7 +29,7 @@ import {
   isKnownAssistantModelId,
   type AssistantModelId,
 } from '@/lib/ai/model.utils'
-import { aiErrorMessage, stackblazeAiConfig } from '@/lib/ai/stackblaze-proxy'
+import { aiErrorMessage, proxyErrorResponse, stackblazeAiConfig } from '@/lib/ai/stackblaze-proxy'
 import { getTools } from '@/lib/ai/tools'
 import { encodeNotebookToolError } from '@/lib/ai/tools/notebook-tool-error'
 import { apiWrapper } from '@/lib/api/apiWrapper'
@@ -168,6 +168,9 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
   })
 
   if (modelError) {
+    // The Assistant shows a failed request's body as is: send the AI proxy's message as text.
+    const proxied = proxyErrorResponse(modelError)
+    if (proxied) return res.status(proxied.status).send(proxied.message)
     return res.status(500).json({ error: modelError.message })
   }
 

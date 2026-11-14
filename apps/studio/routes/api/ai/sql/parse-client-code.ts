@@ -46,6 +46,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     })
 
     if (modelError) {
+      const proxied = proxyErrorResponse(modelError)
+      if (proxied) return res.status(proxied.status).json({ error: proxied.message })
       return res.status(500).json({ error: modelError.message })
     }
 

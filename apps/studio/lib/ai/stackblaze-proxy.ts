@@ -27,6 +27,18 @@ export function stackblazeAiConfig(): StackblazeAiConfig | undefined {
   return { baseURL: `${apiUrl}/api/llm/v1`, apiKey, dashboardUrl }
 }
 
+/** A refusal or failure answered by the AI proxy outside a model call (e.g. listing models). */
+export class StackblazeProxyError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string
+  ) {
+    super(message)
+    this.name = 'StackblazeProxyError'
+  }
+}
+
 const MODELS_TTL_MS = 5 * 60 * 1000
 let cachedModels: { at: number; ids: string[] } | undefined
 
@@ -38,10 +50,13 @@ export async function listProxyModels(config: StackblazeAiConfig): Promise<strin
   })
   if (!response.ok) {
     const body = (await response.json().catch(() => undefined)) as
-      | { error?: { message?: string } }
+      | { error?: { message?: string; code?: string } }
       | undefined
-    throw new Error(
-      body?.error?.message ?? `The StackBlaze AI proxy did not list its models (${response.status})`
+    throw new StackblazeProxyError(
+      body?.error?.message ??
+        `The StackBlaze AI proxy did not list its models (${response.status})`,
+      response.status,
+      body?.error?.code
     )
   }
   const body = (await response.json()) as { data?: Array<{ id?: unknown }> }
@@ -109,10 +124,13 @@ export function aiErrorMessage(error: unknown): string {
   const message =
     error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error'
   const config = stackblazeAiConfig()
-  if (!config || !APICallError.isInstance(error)) return message
+  if (!config) return message
+  const status = proxyStatus(error)
+  if (status === undefined) return message
 
-  const code = proxyErrorCode(error)
-  if (error.statusCode === 402 || code === 'billing_paused') {
+  const code =
+    error instanceof StackblazeProxyError ? error.code : proxyErrorCode(error as APICallError)
+  if (status === 402 || code === 'billing_paused') {
     return withBillingLink(message, config.dashboardUrl)
   }
   return message
@@ -136,7 +154,18 @@ function proxyErrorCode(error: APICallError): string | undefined {
 export function proxyErrorResponse(
   error: unknown
 ): { status: number; message: string } | undefined {
-  if (!stackblazeAiConfig() || !APICallError.isInstance(error)) return
-  const status = error.statusCode && error.statusCode >= 400 ? error.statusCode : 502
+  if (!stackblazeAiConfig()) return
+  const upstream = proxyStatus(error)
+  if (upstream === undefined) return
+  // The proxy refusing Studio's app token is not the user's Studio session expiring: never pass a
+  // 401 on to the browser.
+  const status = upstream === 401 || upstream < 400 ? 502 : upstream
   return { status, message: aiErrorMessage(error) }
+}
+
+/** The proxy's HTTP status for one of its errors; undefined for any other error. */
+function proxyStatus(error: unknown): number | undefined {
+  if (error instanceof StackblazeProxyError) return error.status
+  if (APICallError.isInstance(error)) return error.statusCode ?? 502
+  return undefined
 }
