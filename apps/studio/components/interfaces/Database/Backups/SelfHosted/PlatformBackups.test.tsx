@@ -9,6 +9,8 @@ import { customRender } from '@/tests/lib/custom-render'
 const INSTANCE = 'supabase-api-supabase-postgresql'
 const DUMP_KEY = 'communal-dumps/qa/db/dump-1.manual.dump'
 const RESTORE_JOB = 'in-place-restore-123'
+// The platform answers with its minted instance; Studio must keep showing the display name.
+const MINTED_INSTANCE = `${INSTANCE}-4biq`
 
 type Job = { name: string; phase: string }
 
@@ -23,7 +25,7 @@ function mockBackupsApi(state: { jobs: Job[]; down?: boolean }) {
     if (state.down) throw new TypeError('Failed to fetch')
     if (url.endsWith('/api/self-hosted/backups/restore')) {
       posted.push(JSON.parse(String(init?.body)))
-      return json({ ok: true, job: RESTORE_JOB, instance: INSTANCE, key: DUMP_KEY }, 202)
+      return json({ ok: true, job: RESTORE_JOB, instance: MINTED_INSTANCE, key: DUMP_KEY }, 202)
     }
     if (url.endsWith('/api/self-hosted/backups/schedule')) {
       return json({ cadences: [], dbNames: null, configured: false })
@@ -67,7 +69,10 @@ describe('PlatformBackups in-place restore', () => {
       await screen.findByText('Restoring… the project will be back shortly')
     ).toBeInTheDocument()
     expect(posted).toEqual([{ key: DUMP_KEY, confirm: INSTANCE }])
-    expect(JSON.parse(window.localStorage.getItem(PENDING_RESTORE_KEY)!).job).toBe(RESTORE_JOB)
+    const stored = JSON.parse(window.localStorage.getItem(PENDING_RESTORE_KEY)!)
+    expect(stored.job).toBe(RESTORE_JOB)
+    expect(stored.instance).toBe(INSTANCE)
+    expect(screen.queryByText(MINTED_INSTANCE)).not.toBeInTheDocument()
   })
 
   it('keeps showing the restore while Studio is down', async () => {
@@ -98,6 +103,7 @@ describe('PlatformBackups in-place restore', () => {
     customRender(<PlatformBackups />)
 
     expect(await screen.findByText('Restore completed')).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(`^${INSTANCE} now holds the backup`))).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Dismiss' }))
 

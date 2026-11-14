@@ -125,6 +125,8 @@ export const PlatformBackups = () => {
       pending || (query.state.data?.jobs ?? []).some((j) => j.phase === 'Running') ? 5000 : 60000,
   })
   const outcome = pending ? restoreOutcome(pending, backups.data?.jobs) : undefined
+  // The database's display name (KUBERO_DB_INSTANCE), never the platform's minted instance name.
+  const databaseName = backups.data?.instance || pending?.instance || ''
 
   // Once the restore has ended, everything Studio cached describes the old database.
   const refreshedAfterRestore = useRef(false)
@@ -167,7 +169,8 @@ export const PlatformBackups = () => {
     onSuccess: (result, dump) => {
       const started: PendingRestore = {
         job: result?.job ?? '',
-        instance: result?.instance ?? confirmText,
+        // The database's name as Studio shows it (the platform answers with its minted instance).
+        instance: confirmText,
         backup: dump.key,
         startedAt: new Date().toISOString(),
       }
@@ -219,8 +222,8 @@ export const PlatformBackups = () => {
           <div className="flex flex-col gap-2">
             <p>
               The backup <span className="font-mono text-xs">{fileName(pending.backup)}</span> is
-              replacing <span className="text-foreground">{pending.instance}</span>. Every service
-              of this project, Studio included, is stopped while it runs and starts again when it
+              replacing <span className="text-foreground">{databaseName}</span>. Every service of
+              this project, Studio included, is stopped while it runs and starts again when it
               finishes.
             </p>
             <p className="flex items-center gap-2">
@@ -293,7 +296,7 @@ export const PlatformBackups = () => {
                 <div className="flex flex-col gap-2">
                   <p>
                     {outcome === 'completed'
-                      ? `${pending.instance} now holds the backup ${fileName(pending.backup)}.`
+                      ? `${databaseName} now holds the backup ${fileName(pending.backup)}.`
                       : outcome === 'failed'
                         ? `The restore of ${fileName(pending.backup)} did not finish. The project's services were started again; see the job below.`
                         : `The restore job ${pending.job} is no longer listed. Check the database before relying on it.`}
