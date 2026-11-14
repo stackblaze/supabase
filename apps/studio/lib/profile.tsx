@@ -97,6 +97,10 @@ export const ProfileProvider = ({ children }: PropsWithChildren<{}>) => {
   const isUnauthorized = isError && error?.code === 401
   useEffect(() => {
     if (!isUnauthorized) return
+    // Already on sign-in (self-hosted sign-in answers 401 until the session exists): pushing
+    // the same page again re-runs the root route under TanStack, refetches the profile and
+    // loops.
+    if (router.pathname === '/sign-in') return
     signOut().then(() => router.push('/sign-in'))
   }, [isUnauthorized, signOut, router])
 
