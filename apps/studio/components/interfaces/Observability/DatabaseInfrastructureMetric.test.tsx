@@ -3,19 +3,19 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 
-// The hosted host metrics. Self-hosted shows this database's own footprint instead
-// (stackblaze/supabase#15), so these cases run as the platform.
-vi.mock('@/lib/constants', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/constants')>()),
-  IS_PLATFORM: true,
-}))
-
 import { DatabaseInfrastructureSection } from './DatabaseInfrastructureSection'
 import type { InfraMonitoringMultiResponse } from '@/data/analytics/infra-monitoring-query'
 import { databaseKeys } from '@/data/database/keys'
 import { projectKeys } from '@/data/projects/keys'
 import { customRender } from '@/tests/lib/custom-render'
 import { addAPIMock, type APIErrorBody } from '@/tests/lib/msw'
+
+// The hosted host metrics. Self-hosted shows this database's own footprint instead
+// (stackblaze/supabase#15), so these cases run as the platform.
+vi.mock('@/lib/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/constants')>()),
+  IS_PLATFORM: true,
+}))
 
 const values: Record<string, number> = {
   avg_cpu_usage: 25,
