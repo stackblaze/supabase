@@ -50,9 +50,11 @@ jobs:
           target: production
           push: true
           platforms: linux/amd64
+          # `latest` moves only on master; a workflow_dispatch from another branch
+          # builds a test image tagged by commit only.
           tags: |
-            ghcr.io/stackblaze/supabase-studio:latest
             ghcr.io/stackblaze/supabase-studio:sha-${{ steps.ver.outputs.short }}
+            ${{ github.ref == 'refs/heads/master' && 'ghcr.io/stackblaze/supabase-studio:latest' || '' }}
           labels: |
             org.opencontainers.image.source=https://github.com/stackblaze/supabase
           build-args: |
