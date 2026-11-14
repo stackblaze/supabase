@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff } from 'lucide-react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
@@ -99,7 +99,7 @@ export const SelfHostedResetPasswordPage: NextPageWithLayout = () => {
       title={hidden ? 'Show password' : 'Hide password'}
       aria-label={hidden ? 'Show password' : 'Hide password'}
       className="absolute right-1 top-1 px-1.5"
-      icon={hidden ? <Eye /> : <EyeOff />}
+      icon={hidden ? <EyeIcon /> : <EyeOffIcon />}
       onClick={() => setHidden((prev) => !prev)}
     />
   )

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { Database, Loader2, RotateCcw, Trash2 } from 'lucide-react'
+import { DatabaseIcon, Loader2Icon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -204,10 +204,12 @@ export const PlatformBackups = () => {
               <div className="text-sm text-foreground-light">
                 {running.length > 0 ? (
                   <span className="flex items-center gap-2">
-                    <Loader2 size={14} className="animate-spin" />
-                    {running.length === 1
-                      ? 'A job is running'
-                      : `${running.length} jobs are running`}
+                    <Loader2Icon size={14} className="animate-spin" />
+                    <span>
+                      {running.length === 1
+                        ? 'A job is running'
+                        : `${running.length} jobs are running`}
+                    </span>
                   </span>
                 ) : (
                   `${dumps.length} backup${dumps.length === 1 ? '' : 's'} kept`
@@ -215,7 +217,7 @@ export const PlatformBackups = () => {
               </div>
               <Button
                 variant="primary"
-                icon={<Database />}
+                icon={<DatabaseIcon />}
                 loading={backupNow.isPending}
                 onClick={() => backupNow.mutate()}
               >
@@ -256,7 +258,7 @@ export const PlatformBackups = () => {
                             <Button
                               variant="default"
                               size="tiny"
-                              icon={<RotateCcw />}
+                              icon={<RotateCcwIcon />}
                               onClick={() => {
                                 setConfirmText('')
                                 setRestoring(dump)
@@ -267,7 +269,7 @@ export const PlatformBackups = () => {
                             <Button
                               variant="default"
                               size="tiny"
-                              icon={<Trash2 />}
+                              icon={<Trash2Icon />}
                               onClick={() => setDeleting(dump)}
                             >
                               Delete
@@ -365,10 +367,12 @@ export const PlatformBackups = () => {
                       <span className="text-sm text-foreground">{cadenceLabel(cadence.id)}</span>
                     </div>
                     <span className="text-sm text-foreground-light">
-                      kept{' '}
-                      {cadence.retentionHours >= 48
-                        ? `${Math.round(cadence.retentionHours / 24)} days`
-                        : `${cadence.retentionHours} hours`}
+                      <span>kept </span>
+                      <span>
+                        {cadence.retentionHours >= 48
+                          ? `${Math.round(cadence.retentionHours / 24)} days`
+                          : `${cadence.retentionHours} hours`}
+                      </span>
                     </span>
                   </div>
                 ))}
