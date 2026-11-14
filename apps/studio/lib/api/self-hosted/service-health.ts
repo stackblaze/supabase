@@ -126,7 +126,7 @@ export async function retrieveServiceHealth({
       const ok = Number(row.ok_count ?? 0)
       const warning = Number(row.warning_count ?? 0)
       const error = Number(row.error_count ?? 0)
-      const bucket = buckets.get(timestamp) ?? { timestamp }
+      const bucket: ServiceHealthRow = buckets.get(timestamp) ?? { timestamp }
       bucket[key] = { ok, warning, error, total: ok + warning + error }
       buckets.set(timestamp, bucket)
     }

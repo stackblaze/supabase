@@ -94,11 +94,21 @@ const dbPath = () => `${base()}/db/${encodeURIComponent(env().instance)}`
 
 export const listBackups = () => call<PlatformBackups>('GET', dbPath())
 export const backupNow = () => call<{ ok: boolean; job: string }>('POST', `${dbPath()}/dump`)
-export const restoreBackup = (key: string) =>
-  call<{ ok: boolean; job: string }>('POST', `${dbPath()}/restore`, {
-    key,
-    confirm: env().instance,
-  })
+/** What a restore into a new database started: `to` is the new database's instance. */
+export type RestoreCopy = {
+  ok: boolean
+  job: string
+  from: string
+  to: string
+  displayName?: string
+}
+/**
+ * Restore one dump into a NEW database next to this one (the platform no longer restores in
+ * place, kubero-server #2045). Nothing that runs is changed; the new database is connected from
+ * the platform's dashboard if wanted.
+ */
+export const restoreBackupAsNew = (key: string) =>
+  call<RestoreCopy>('POST', `${dbPath()}/restore-copy`, { backup: key })
 export const deleteBackup = (key: string) =>
   call<{ ok: boolean }>('DELETE', `${dbPath()}?key=${encodeURIComponent(key)}`)
 export const getSchedule = () => call<DumpSchedule>('GET', `${base()}/db-schedule`)

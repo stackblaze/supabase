@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
-import { Database, Loader2, RotateCcw, Trash2 } from 'lucide-react'
+import { DatabaseIcon, Loader2Icon, RotateCcwIcon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -8,7 +8,6 @@ import {
   Button,
   Card,
   CardContent,
-  Input,
   Switch,
   Table,
   TableBody,
@@ -59,6 +58,21 @@ async function getJson<T>(url: string, fallback: string): Promise<T> {
   return (await res.json()) as T
 }
 
+type RestoreCopy = { job: string; from: string; to: string; displayName?: string }
+
+async function sendJson<T>(
+  url: string,
+  init: RequestInit,
+  fallback: string
+): Promise<T | undefined> {
+  const res = await fetch(url, {
+    ...init,
+    headers: { 'content-type': 'application/json', ...(init.headers ?? {}) },
+  }).catch(() => undefined)
+  if (!res?.ok) throw new Error(await readError(res, fallback))
+  return (await res.json().catch(() => undefined)) as T | undefined
+}
+
 async function send(url: string, init: RequestInit, fallback: string): Promise<void> {
   const res = await fetch(url, {
     ...init,
@@ -81,13 +95,14 @@ const cadenceLabel = (id: string) =>
 
 /**
  * The platform's backups of this deployment's database: scheduled dumps kept
- * in the region bucket, a "Back up now" button, restore (overwrites the live
- * database, confirmed by typing its name), delete, and the dump schedule.
+ * in the region bucket, a "Back up now" button, restore (into a NEW database
+ * next to this one; nothing running changes), delete, and the dump schedule.
  */
 export const PlatformBackups = () => {
   const queryClient = useQueryClient()
   const [restoring, setRestoring] = useState<Dump>()
-  const [confirmText, setConfirmText] = useState('')
+  // The database the last restore created, shown until dismissed.
+  const [restoredTo, setRestoredTo] = useState<string>()
   const [deleting, setDeleting] = useState<Dump>()
 
   const backups = useQuery({
@@ -116,15 +131,16 @@ export const PlatformBackups = () => {
   })
   const restore = useMutation({
     mutationFn: (dump: Dump) =>
-      send(
+      sendJson<RestoreCopy>(
         `${API}/restore`,
-        { method: 'POST', body: JSON.stringify({ key: dump.key, confirm: confirmText }) },
+        { method: 'POST', body: JSON.stringify({ key: dump.key }) },
         'Could not start the restore'
       ),
-    onSuccess: () => {
-      toast.success('Restore started; the database is replaced when the job finishes')
+    onSuccess: (result) => {
+      const name = result?.displayName || result?.to || 'a new database'
+      toast.success(`Restoring into ${name}`)
+      setRestoredTo(name)
       setRestoring(undefined)
-      setConfirmText('')
       invalidate()
     },
     onError: (e: Error) => toast.error(e.message),
@@ -194,20 +210,30 @@ export const PlatformBackups = () => {
           </PageSectionSummary>
           <p className="text-sm text-foreground-light">
             Full dumps of <span className="text-foreground">{instance}</span> taken by the platform
-            on the schedule below and kept in the region's backup bucket. Restoring replaces the
-            live database with the chosen dump.
+            on the schedule below and kept in the region's backup bucket. Restoring loads the chosen
+            dump into a new database next to this one; nothing running changes.
           </p>
         </PageSectionMeta>
         <PageSectionContent>
+          {restoredTo && (
+            <Admonition
+              type="note"
+              className="mb-4"
+              title={`Restoring into the new database ${restoredTo}`}
+              description="This project keeps using its current database. Connect the new one from the StackBlaze dashboard if you want to use it."
+            />
+          )}
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="text-sm text-foreground-light">
                 {running.length > 0 ? (
                   <span className="flex items-center gap-2">
-                    <Loader2 size={14} className="animate-spin" />
-                    {running.length === 1
-                      ? 'A job is running'
-                      : `${running.length} jobs are running`}
+                    <Loader2Icon size={14} className="animate-spin" />
+                    <span>
+                      {running.length === 1
+                        ? 'A job is running'
+                        : `${running.length} jobs are running`}
+                    </span>
                   </span>
                 ) : (
                   `${dumps.length} backup${dumps.length === 1 ? '' : 's'} kept`
@@ -215,7 +241,7 @@ export const PlatformBackups = () => {
               </div>
               <Button
                 variant="primary"
-                icon={<Database />}
+                icon={<DatabaseIcon />}
                 loading={backupNow.isPending}
                 onClick={() => backupNow.mutate()}
               >
@@ -256,18 +282,15 @@ export const PlatformBackups = () => {
                             <Button
                               variant="default"
                               size="tiny"
-                              icon={<RotateCcw />}
-                              onClick={() => {
-                                setConfirmText('')
-                                setRestoring(dump)
-                              }}
+                              icon={<RotateCcwIcon />}
+                              onClick={() => setRestoring(dump)}
                             >
                               Restore
                             </Button>
                             <Button
                               variant="default"
                               size="tiny"
-                              icon={<Trash2 />}
+                              icon={<Trash2Icon />}
                               onClick={() => setDeleting(dump)}
                             >
                               Delete
@@ -365,10 +388,12 @@ export const PlatformBackups = () => {
                       <span className="text-sm text-foreground">{cadenceLabel(cadence.id)}</span>
                     </div>
                     <span className="text-sm text-foreground-light">
-                      kept{' '}
-                      {cadence.retentionHours >= 48
-                        ? `${Math.round(cadence.retentionHours / 24)} days`
-                        : `${cadence.retentionHours} hours`}
+                      <span>kept </span>
+                      <span>
+                        {cadence.retentionHours >= 48
+                          ? `${Math.round(cadence.retentionHours / 24)} days`
+                          : `${cadence.retentionHours} hours`}
+                      </span>
                     </span>
                   </div>
                 ))}
@@ -386,30 +411,25 @@ export const PlatformBackups = () => {
       </PageSection>
 
       <ConfirmationModal
-        variant="destructive"
         visible={restoring !== undefined}
-        title="Restore this backup"
+        title="Restore into a new database"
         confirmLabel="Restore"
         loading={restore.isPending}
-        disabled={confirmText !== instance}
         onCancel={() => setRestoring(undefined)}
         onConfirm={() => restoring && restore.mutate(restoring)}
       >
         <div className="flex flex-col gap-3 text-sm text-foreground-light">
           <p>
-            The live database <span className="text-foreground">{instance}</span> is replaced with
-            the backup from{' '}
-            <span className="text-foreground">{formatTime(restoring?.lastModified)}</span>.
-            Everything written since is lost. Take a backup first if in doubt.
+            The backup from{' '}
+            <span className="text-foreground">{formatTime(restoring?.lastModified)}</span> is
+            restored into a <span className="text-foreground">new database</span> next to{' '}
+            <span className="text-foreground">{instance}</span>.
           </p>
           <p>
-            Type <span className="font-mono text-foreground">{instance}</span> to confirm.
+            Nothing running changes: this project keeps using{' '}
+            <span className="text-foreground">{instance}</span>. Connect the new database from the
+            StackBlaze dashboard if you want to use it.
           </p>
-          <Input
-            value={confirmText}
-            onChange={(e) => setConfirmText(e.target.value)}
-            placeholder={instance}
-          />
         </div>
       </ConfirmationModal>
       <ConfirmationModal

@@ -1,8 +1,11 @@
+import { safeSql } from '@supabase/pg-meta'
 import { useQuery } from '@tanstack/react-query'
 
 import { databaseKeys } from './keys'
+import { unguarded } from '@/data/fetchers'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
-import { ResponseError, UseCustomQueryOptions } from '@/types'
+import type { StudioError } from '@/lib/errors/studio-errors'
+import type { UseCustomQueryOptions } from '@/types'
 
 export type DatabaseFootprintVariables = {
   projectRef?: string
@@ -14,7 +17,7 @@ export type DatabaseFootprintVariables = {
  * size, open connections and the connection limit that applies to it (the database's, else
  * its owner's, else the server's).
  */
-const DATABASE_FOOTPRINT_SQL = /* SQL */ `
+const DATABASE_FOOTPRINT_SQL = safeSql`
 select
   pg_database_size(current_database())::bigint as size_bytes,
   (select count(*) from pg_stat_activity where datname = current_database())::int as connections,
@@ -26,7 +29,7 @@ select
 from pg_database d
 join pg_roles r on r.oid = d.datdba
 where d.datname = current_database()
-`.trim()
+`
 
 export async function getDatabaseFootprint(
   { projectRef, connectionString }: DatabaseFootprintVariables,
@@ -36,8 +39,12 @@ export async function getDatabaseFootprint(
     {
       projectRef,
       connectionString,
+      sqlOrigin: 'studio',
+      queryName: 'database-footprint',
       sql: DATABASE_FOOTPRINT_SQL,
       queryKey: ['database-footprint'],
+      // Only runs self-hosted, where every grant is held.
+      grant: unguarded.byDesign('self-hosted only'),
     },
     signal
   )
@@ -53,7 +60,7 @@ export async function getDatabaseFootprint(
 }
 
 export type DatabaseFootprintData = Awaited<ReturnType<typeof getDatabaseFootprint>>
-export type DatabaseFootprintError = ResponseError
+export type DatabaseFootprintError = StudioError
 
 export const useDatabaseFootprintQuery = <TData = DatabaseFootprintData>(
   { projectRef, connectionString }: DatabaseFootprintVariables,

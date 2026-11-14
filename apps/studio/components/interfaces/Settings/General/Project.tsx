@@ -60,10 +60,10 @@ export const Project = () => {
             <PageSectionTitle>{entityLabelCapitalized} availability</PageSectionTitle>
             <PageSectionDescription>
               {isPaused
-                ? `Resume your paused ${entityLabel} or review recovery options`
+                ? `Resume your paused ${entityLabel} or review recovery options.`
                 : IS_PLATFORM
-                  ? `Restart or pause your ${entityLabel} when performing maintenance`
-                  : `Restart your ${entityLabel} when performing maintenance`}
+                  ? `Restart or pause your ${entityLabel} when performing maintenance.`
+                  : `Restart your ${entityLabel} when performing maintenance.`}
             </PageSectionDescription>
           </PageSectionSummary>
         </PageSectionMeta>

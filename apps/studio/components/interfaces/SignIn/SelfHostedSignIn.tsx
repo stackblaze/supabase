@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff } from 'lucide-react'
+import { EyeIcon, EyeOffIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
@@ -16,11 +16,11 @@ import {
   type SelfHostedLoginMethods,
 } from '@/hooks/misc/useSelfHostedLoginEnabled'
 import { BASE_PATH } from '@/lib/constants'
+import { enterStudio, safeReturnTo, SIGNED_IN_HOME } from '@/lib/self-hosted-sign-in-navigation'
 import type { NextPageWithLayout } from '@/types'
 
 const LOGIN_API = `${BASE_PATH}/api/self-hosted/login`
 const MAGIC_LINK_API = `${BASE_PATH}/api/self-hosted/magic-link`
-const HOME = '/project/default'
 
 const schema = z.object({
   identifier: z.string().trim().min(1, 'Enter your email or username'),
@@ -54,12 +54,6 @@ function readLinkFragment(): { accessToken?: string; type?: string; error?: stri
   }
 }
 
-function safeReturnTo(requested: unknown): string {
-  return typeof requested === 'string' && requested.startsWith('/') && !requested.startsWith('//')
-    ? requested
-    : HOME
-}
-
 /**
  * Sign-in for self-hosted Studio (STUDIO_SELF_HOSTED_LOGIN=true): the same
  * screen as the hosted dashboard's sign-in. One form: an email address signs
@@ -89,7 +83,7 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
     fetchSelfHostedLoginStatus().then((status) => {
       if (cancelled) return
       if (!status.enabled) {
-        router.replace(HOME)
+        router.replace(SIGNED_IN_HOME)
         return
       }
       setMethods(status.methods)
@@ -116,7 +110,7 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
     setLinkPending(true)
     postJson(LOGIN_API, { accessToken: link.accessToken }).then((result) => {
       if (result.ok) {
-        router.replace(returnTo)
+        enterStudio(returnTo)
         return
       }
       setLinkPending(false)
@@ -132,7 +126,7 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
         : { username: identifier, password }
     const result = await postJson(LOGIN_API, body)
     if (result.ok) {
-      await router.replace(returnTo)
+      enterStudio(returnTo)
       return
     }
     setError(result.message)
@@ -211,7 +205,7 @@ export const SelfHostedSignInPage: NextPageWithLayout = () => {
                     title={passwordHidden ? 'Show password' : 'Hide password'}
                     aria-label={passwordHidden ? 'Show password' : 'Hide password'}
                     className="absolute right-1 top-1 px-1.5"
-                    icon={passwordHidden ? <Eye /> : <EyeOff />}
+                    icon={passwordHidden ? <EyeIcon /> : <EyeOffIcon />}
                     disabled={isSubmitting}
                     onClick={() => setPasswordHidden((prev) => !prev)}
                   />

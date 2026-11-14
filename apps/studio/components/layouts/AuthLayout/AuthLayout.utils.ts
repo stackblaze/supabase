@@ -1,5 +1,5 @@
 import { useFlag, useParams } from 'common'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRightIcon } from 'lucide-react'
 import { createElement } from 'react'
 
 import type { ProductMenuGroup } from '@/components/ui/ProductMenu/ProductMenu.types'
@@ -8,7 +8,7 @@ import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { IS_PLATFORM } from '@/lib/constants'
 import { SHORTCUT_IDS } from '@/state/shortcuts/registry'
 
-const ExternalLinkIcon = createElement(ArrowUpRight, { strokeWidth: 1, className: 'h-4 w-4' })
+const ExternalLinkIcon = createElement(ArrowUpRightIcon, { strokeWidth: 1, className: 'h-4 w-4' })
 
 export interface GenerateAuthMenuOptions {
   ref?: string

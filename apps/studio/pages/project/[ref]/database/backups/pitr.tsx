@@ -1,6 +1,5 @@
-import { PermissionAction } from '@supabase/shared-types/out/constants'
 import { useParams } from 'common'
-import { AlertCircle, DatabaseBackup } from 'lucide-react'
+import { AlertCircleIcon, DatabaseBackupIcon } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from 'ui'
 import { Admonition } from 'ui-patterns/Admonition'
 import { PageContainer } from 'ui-patterns/PageContainer'
@@ -27,9 +26,13 @@ import { NoPermission } from '@/components/ui/NoPermission'
 import { UpgradeToPro } from '@/components/ui/UpgradeToPro'
 import { useBackupsQuery } from '@/data/database/backups-query'
 import { useCheckEntitlements } from '@/hooks/misc/useCheckEntitlements'
-import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
+import { FGA_PERMISSIONS, useAsyncCheckPermissionsV2 } from '@/hooks/misc/useCheckPermissionsV2'
 import { useHighAvailability } from '@/hooks/misc/useHighAvailability'
-import { useIsOrioleDbInAws, useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
+import {
+  useIsOrioleDbInAws,
+  useOrioleDbReleaseStage,
+  useSelectedProjectQuery,
+} from '@/hooks/misc/useSelectedProject'
 import { DOCS_URL, IS_PLATFORM, PROJECT_STATUS } from '@/lib/constants'
 import type { NextPageWithLayout } from '@/types'
 
@@ -72,6 +75,7 @@ const PITR = () => {
   const { hasAccess: hasAccessToPitr, isLoading: isLoadingEntitlements } =
     useCheckEntitlements('pitr.available_variants')
   const isOrioleDbInAws = useIsOrioleDbInAws()
+  const orioleDbReleaseStage = useOrioleDbReleaseStage()
   const {
     data: backups,
     error,
@@ -84,10 +88,8 @@ const PITR = () => {
   const isEnabled = backups?.pitr_enabled
   const isActiveHealthy = project?.status === PROJECT_STATUS.ACTIVE_HEALTHY
 
-  const { can: canReadPhysicalBackups, isSuccess: isPermissionsLoaded } = useAsyncCheckPermissions(
-    PermissionAction.READ,
-    'physical_backups'
-  )
+  const { can: canReadPhysicalBackups, isSuccess: isPermissionsLoaded } =
+    useAsyncCheckPermissionsV2(FGA_PERMISSIONS.PROJECT.BACKUPS_READ)
 
   if (isPermissionsLoaded && !canReadPhysicalBackups) {
     return <NoPermission resourceText="view PITR backups" />
@@ -97,8 +99,8 @@ const PITR = () => {
     return (
       <Admonition
         type="default"
-        title="Database backups are not available for OrioleDB"
-        description="OrioleDB is currently in public beta and Point-in-Time Recovery is unavailable on OrioleDB projects"
+        title="Point-in-Time Recovery is not available for OrioleDB"
+        description={`OrioleDB is currently in public ${orioleDbReleaseStage} and Point-in-Time Recovery is unavailable on OrioleDB projects`}
       >
         <DocsButton abbrev={false} className="mt-2" href={DOCS_URL} />
       </Admonition>
@@ -112,7 +114,7 @@ const PITR = () => {
   if (isHighAvailability) {
     return (
       <HighAvailabilityDisabledEmptyState
-        icon={DatabaseBackup}
+        icon={DatabaseBackupIcon}
         title="Point-in-Time Recovery unavailable on High Availability projects"
         description="We're working to bring point-in-time recovery to High Availability projects. Contact support if this is blocking your work."
         className="max-w-none mx-0"
@@ -143,7 +145,7 @@ const PITR = () => {
             />
           ) : !isActiveHealthy ? (
             <Alert>
-              <AlertCircle />
+              <AlertCircleIcon />
               <AlertTitle>
                 Point in Time Recovery is not available while project is offline
               </AlertTitle>

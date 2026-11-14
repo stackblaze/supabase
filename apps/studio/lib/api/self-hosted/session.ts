@@ -1,10 +1,11 @@
 /**
  * Sign-in for self-hosted Studio: an identity kept as an HMAC-signed,
- * expiring cookie that proxy.ts verifies on every request. Enabled with
+ * expiring cookie that the sign-in gate (sign-in-gate.ts, run from start.ts)
+ * verifies on every request. Enabled with
  * STUDIO_SELF_HOSTED_LOGIN=true. The identity is either the gateway's
  * dashboard credential (DASHBOARD_USERNAME / DASHBOARD_PASSWORD) or an Auth
  * user flagged as a Studio admin (see auth-provider.ts). Web Crypto only, so
- * the same code runs in API routes and in the request proxy.
+ * the same code runs in API routes and in the request middleware.
  */
 export const SESSION_COOKIE = 'sb_studio_session'
 export const SESSION_TTL_SECONDS = 12 * 60 * 60

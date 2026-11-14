@@ -1,5 +1,4 @@
 import SectionContainerWithCn from '~/components/Layouts/SectionContainerWithCn'
-import Link from 'next/link'
 import { Button } from 'ui'
 
 import { StartYourProjectButton } from '@/components/StartYourProjectButton'
@@ -19,9 +18,9 @@ export function Hero() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <StartYourProjectButton />
+          <StartYourProjectButton variant="primary" buttonLocation="Product Page Hero - Storage" />
           <Button asChild size="medium">
-            <Link href="/docs/guides/storage">Documentation</Link>
+            <a href="/docs/guides/storage">Documentation</a>
           </Button>
         </div>
       </div>
