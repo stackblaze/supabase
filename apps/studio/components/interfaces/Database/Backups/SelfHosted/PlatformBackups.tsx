@@ -128,13 +128,31 @@ export const PlatformBackups = () => {
   // The database's display name (KUBERO_DB_INSTANCE), never the platform's minted instance name.
   const databaseName = backups.data?.instance || pending?.instance || ''
 
-  // Once the restore has ended, everything Studio cached describes the old database.
+  // The project's services start again in no fixed order: Studio can be back before the
+  // database API (pg-meta). Wait until a trivial query works before calling the restore done.
+  const restoreEnded = !!outcome && outcome !== 'running'
+  const databaseReady = useQuery({
+    queryKey: ['self-hosted', 'database-ready-after-restore', pending?.job],
+    queryFn: () =>
+      sendJson<unknown[]>(
+        `${BASE_PATH}/api/platform/pg-meta/default/query`,
+        { method: 'POST', body: JSON.stringify({ query: 'select 1' }) },
+        'The database is not answering yet'
+      ),
+    enabled: restoreEnded,
+    retry: true,
+    retryDelay: 3000,
+    staleTime: Infinity,
+  })
+  const waitingForDatabase = restoreEnded && !databaseReady.isSuccess
+
+  // Once the database answers again, everything Studio cached describes the old database.
   const refreshedAfterRestore = useRef(false)
   useEffect(() => {
-    if (!outcome || outcome === 'running' || refreshedAfterRestore.current) return
+    if (!restoreEnded || !databaseReady.isSuccess || refreshedAfterRestore.current) return
     refreshedAfterRestore.current = true
     queryClient.invalidateQueries()
-  }, [outcome, queryClient])
+  }, [restoreEnded, databaseReady.isSuccess, queryClient])
 
   const dismissRestore = () => {
     clearPendingRestore()
@@ -213,7 +231,7 @@ export const PlatformBackups = () => {
     onError: (e: Error) => toast.error(e.message),
   })
 
-  if (pending && outcome === 'running') {
+  if (pending && (outcome === 'running' || waitingForDatabase)) {
     return (
       <Admonition
         type="warning"
@@ -229,9 +247,11 @@ export const PlatformBackups = () => {
             <p className="flex items-center gap-2">
               <Loader2Icon size={14} className="animate-spin" />
               <span>
-                {backups.isError || backups.isFetching
-                  ? 'Waiting for Studio to come back…'
-                  : 'Restore running…'}
+                {waitingForDatabase
+                  ? 'Restore finished; waiting for the database to answer…'
+                  : backups.isError || backups.isFetching
+                    ? 'Waiting for Studio to come back…'
+                    : 'Restore running…'}
               </span>
             </p>
             <p>This page updates by itself; reloading it is safe.</p>

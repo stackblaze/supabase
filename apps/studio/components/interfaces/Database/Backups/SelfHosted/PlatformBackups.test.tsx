@@ -18,7 +18,7 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 
 /** Fakes Studio's backups API; `jobs` and `down` can change between requests. */
-function mockBackupsApi(state: { jobs: Job[]; down?: boolean }) {
+function mockBackupsApi(state: { jobs: Job[]; down?: boolean; databaseDown?: boolean }) {
   const posted: unknown[] = []
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const url = String(input)
@@ -26,6 +26,9 @@ function mockBackupsApi(state: { jobs: Job[]; down?: boolean }) {
     if (url.endsWith('/api/self-hosted/backups/restore')) {
       posted.push(JSON.parse(String(init?.body)))
       return json({ ok: true, job: RESTORE_JOB, instance: MINTED_INSTANCE, key: DUMP_KEY }, 202)
+    }
+    if (url.endsWith('/api/platform/pg-meta/default/query')) {
+      return state.databaseDown ? json({ error: {} }, 500) : json([{ '?column?': 1 }])
     }
     if (url.endsWith('/api/self-hosted/backups/schedule')) {
       return json({ cadences: [], dbNames: null, configured: false })
@@ -109,6 +112,26 @@ describe('PlatformBackups in-place restore', () => {
 
     await waitFor(() => expect(screen.queryByText('Restore completed')).not.toBeInTheDocument())
     expect(window.localStorage.getItem(PENDING_RESTORE_KEY)).toBeNull()
+  })
+
+  it('waits for the database to answer before calling the restore done', async () => {
+    savePendingRestore({
+      job: RESTORE_JOB,
+      instance: INSTANCE,
+      backup: DUMP_KEY,
+      startedAt: new Date().toISOString(),
+    })
+    const state = { jobs: [{ name: RESTORE_JOB, phase: 'Completed' }], databaseDown: true }
+    mockBackupsApi(state)
+    customRender(<PlatformBackups />)
+
+    expect(
+      await screen.findByText('Restore finished; waiting for the database to answer…')
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Restore completed')).not.toBeInTheDocument()
+
+    state.databaseDown = false
+    expect(await screen.findByText('Restore completed', {}, { timeout: 8000 })).toBeInTheDocument()
   })
 
   it('reports a failed restore', async () => {
