@@ -172,7 +172,7 @@ const WorkspaceMembersSection = () => {
           </Table>
         </Card>
         <div className="mt-4">
-          <Button asChild type="default">
+          <Button asChild variant="default">
             <a href={data.manageUrl} target="_blank" rel="noreferrer">
               Manage members
             </a>

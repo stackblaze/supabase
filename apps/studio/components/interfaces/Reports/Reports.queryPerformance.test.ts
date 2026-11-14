@@ -17,15 +17,16 @@ const queryNames = [
   'queryMetrics',
 ] as const
 
+// The base filter also scopes to this database (pg_stat_statements is server-wide; a
+// self-hosted project can share its Postgres server with others).
+const BASE_FILTER =
+  /calls > 0 and (?:statements\.)?dbid = \(select oid from pg_database where datname = current_database\(\)\)/
+const BASE_FILTER_THEN_AND = new RegExp(`${BASE_FILTER.source}\\s+AND`)
+
 describe('QUERY_PERFORMANCE SQL queries', () => {
   describe('calls > 0 base filter', () => {
     it.each(queryNames)('%s includes calls > 0 without user filters', (name) => {
       const sql = queries[name].safeSql([], undefined, undefined)
-      expect(sql).toContain('calls > 0')
-    })
-
-    it.each(queryNames)('%s still includes calls > 0 when user filters are provided', (name) => {
-      const sql = queries[name].safeSql([], "WHERE auth.rolname in ('postgres')", undefined)
       expect(sql).toContain('calls > 0')
     })
   })
@@ -45,7 +46,7 @@ describe('QUERY_PERFORMANCE SQL queries', () => {
       // User filter condition should be present
       expect(sql).toContain("auth.rolname in ('postgres')")
       // Should use AND to join base filter and user filter
-      expect(sql).toMatch(/calls > 0\s+AND/)
+      expect(sql).toMatch(BASE_FILTER_THEN_AND)
     })
 
     it('queryMetrics: user filters appended with AND (no duplicate WHERE in FROM clause)', () => {
@@ -53,7 +54,7 @@ describe('QUERY_PERFORMANCE SQL queries', () => {
       // queryMetrics uses COUNT(*) FILTER (WHERE ...) which is valid SQL and not a duplicate
       // Just verify the base filter + user filter are correctly composed
       expect(sql).toContain("auth.rolname in ('postgres')")
-      expect(sql).toMatch(/calls > 0\s+AND/)
+      expect(sql).toMatch(BASE_FILTER_THEN_AND)
       // Should not have two WHERE keywords after the FROM keyword
       expect(sql).not.toMatch(/FROM[\s\S]*WHERE[\s\S]*WHERE[\s\S]*WHERE/s)
     })
@@ -68,7 +69,7 @@ describe('QUERY_PERFORMANCE SQL queries', () => {
       const sql = queries[name].safeSql([], undefined, undefined)
       // Should not have a dangling undefined or 'WHERE' with nothing after the base filter
       expect(sql).not.toContain('undefined')
-      expect(sql).not.toMatch(/calls > 0\s+AND\s+(ORDER|LIMIT|$)/im)
+      expect(sql).not.toMatch(new RegExp(`${BASE_FILTER.source}\\s+AND\\s+(ORDER|LIMIT|$)`, 'im'))
     })
   })
 

@@ -1,6 +1,6 @@
 import { useFlag, useParams } from 'common'
 import dayjs from 'dayjs'
-import { ArrowRight, LogsIcon, RefreshCw } from 'lucide-react'
+import { ArrowRightIcon, LogsIcon, RefreshCwIcon } from 'lucide-react'
 import { useRouter } from 'next/router'
 import { parseAsJson, useQueryState } from 'nuqs'
 import { useState } from 'react'
@@ -222,8 +222,7 @@ const AuthUsage = () => {
       <ReportStickyNav
         content={
           <div className="flex flex-col gap-2 w-full">
-            <div className="ml-auto flex items-center gap-2 flex-wrap">
-              <DocsButton href={OBSERVABILITY_DOCS_HREFS.auth} topic={REPORT_TITLE} />
+            <div className="w-full flex items-center gap-2 flex-wrap">
               <ShortcutTooltip
                 shortcutId={SHORTCUT_IDS.OBSERVABILITY_REFRESH}
                 label="Refresh report"
@@ -231,7 +230,7 @@ const AuthUsage = () => {
               >
                 <Button
                   disabled={isRefreshing}
-                  icon={<RefreshCw className={isRefreshing ? 'animate-spin' : ''} />}
+                  icon={<RefreshCwIcon className={isRefreshing ? 'animate-spin' : ''} />}
                   className="w-7"
                   onClick={onRefreshReport}
                 />
@@ -253,18 +252,23 @@ const AuthUsage = () => {
                 source="authReportDateRange"
               />
               {selectedDateRange && (
-                <div className="flex items-center gap-x-2 text-xs">
+                <div className="order-last flex w-full flex-wrap items-center gap-x-2 text-xs xl:order-none xl:w-auto">
                   <p className="text-foreground-light">
                     {dayjs(selectedDateRange.period_start.date).format('MMM D, h:mma')}
                   </p>
                   <p className="text-foreground-light">
-                    <ArrowRight size={12} />
+                    <ArrowRightIcon size={12} />
                   </p>
                   <p className="text-foreground-light">
                     {dayjs(selectedDateRange.period_end.date).format('MMM D, h:mma')}
                   </p>
                 </div>
               )}
+              <DocsButton
+                href={OBSERVABILITY_DOCS_HREFS.auth}
+                topic={REPORT_TITLE}
+                className="ml-auto"
+              />
             </div>
           </div>
         }
@@ -364,7 +368,7 @@ const AuthUsage = () => {
               ))}
             </div>
           </div>
-          <div>
+          <div id="auth-api-gateway">
             <div className="mb-4 space-y-4">
               <ReportSectionHeader
                 id="auth-api-gateway"

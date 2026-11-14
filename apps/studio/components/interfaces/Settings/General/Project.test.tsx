@@ -4,6 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Project } from './Project'
 
+// These suites cover the hosted UI. Self-hosted Studio on a hosting platform hides pause,
+// the restart-type menu and upgrade checks (stackblaze/supabase#23, #25); see the
+// self-hosted case at the end.
+const platform = vi.hoisted(() => ({ isPlatform: true }))
+vi.mock('@/lib/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/constants')>()),
+  get IS_PLATFORM() {
+    return platform.isPlatform
+  },
+}))
+
 const { mockUseIsFeatureEnabled, mockUseProjectPauseStatusQuery, mockUseSelectedProjectQuery } =
   vi.hoisted(() => ({
     mockUseIsFeatureEnabled: vi.fn(),
@@ -160,5 +171,23 @@ describe('Project settings availability', () => {
     expect(screen.queryByText('Pause project')).not.toBeInTheDocument()
     expect(screen.queryByText('PauseProjectButton')).not.toBeInTheDocument()
     expect(screen.queryByText('ResumeProjectButton')).not.toBeInTheDocument()
+  })
+
+  it('offers restart but not pause when self-hosted', () => {
+    platform.isPlatform = false
+    try {
+      mockUseSelectedProjectQuery.mockReturnValue({
+        data: { parent_project_ref: null, ref: 'default', status: 'ACTIVE_HEALTHY' },
+      })
+
+      render(<Project />)
+
+      expect(screen.getByText('Restart project')).toBeInTheDocument()
+      expect(screen.getByText('RestartServerButton')).toBeInTheDocument()
+      expect(screen.queryByText('Pause project')).not.toBeInTheDocument()
+      expect(screen.queryByText('PauseProjectButton')).not.toBeInTheDocument()
+    } finally {
+      platform.isPlatform = true
+    }
   })
 })

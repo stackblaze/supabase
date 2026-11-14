@@ -1,5 +1,5 @@
 import { useFlag, useParams } from 'common'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRightIcon } from 'lucide-react'
 
 import { useIsPlatformWebhooksEnabled } from '@/components/interfaces/App/FeaturePreview/FeaturePreviewContext'
 import { getInfrastructurePath } from '@/components/interfaces/Settings/Infrastructure/Infrastructure.utils'
@@ -99,14 +99,14 @@ export const useGenerateSettingsMenu = () => {
             key: 'api',
             url: `/project/${ref}/integrations/data_api/overview`,
             items: [],
-            rightIcon: <ArrowUpRight strokeWidth={1} className="h-4 w-4" />,
+            rightIcon: <ArrowUpRightIcon strokeWidth={1} className="h-4 w-4" />,
           },
           {
             name: 'Vault',
             key: 'vault',
             url: `/project/${ref}/integrations/vault/overview`,
             items: [],
-            rightIcon: <ArrowUpRight strokeWidth={1} className="h-4 w-4" />,
+            rightIcon: <ArrowUpRightIcon strokeWidth={1} className="h-4 w-4" />,
             label: 'Beta',
           },
         ],
@@ -230,7 +230,7 @@ export const useGenerateSettingsMenu = () => {
           key: 'api',
           url: `/project/${ref}/integrations/data_api/overview`,
           items: [],
-          rightIcon: <ArrowUpRight strokeWidth={1} className="h-4 w-4" />,
+          rightIcon: <ArrowUpRightIcon strokeWidth={1} className="h-4 w-4" />,
           disabled: !isProjectActive,
           isLoading: isPending,
         },
@@ -239,7 +239,7 @@ export const useGenerateSettingsMenu = () => {
           key: 'vault',
           url: `/project/${ref}/integrations/vault/overview`,
           items: [],
-          rightIcon: <ArrowUpRight strokeWidth={1} className="h-4 w-4" />,
+          rightIcon: <ArrowUpRightIcon strokeWidth={1} className="h-4 w-4" />,
           label: 'Beta',
           disabled: !isProjectActive,
           isLoading: isPending,
@@ -256,7 +256,7 @@ export const useGenerateSettingsMenu = () => {
                 key: 'subscription',
                 url: `/org/${organization?.slug}/billing`,
                 items: [],
-                rightIcon: <ArrowUpRight strokeWidth={1} className="h-4 w-4" />,
+                rightIcon: <ArrowUpRightIcon strokeWidth={1} className="h-4 w-4" />,
               },
             ]
           : []),
@@ -265,7 +265,7 @@ export const useGenerateSettingsMenu = () => {
           key: 'usage',
           url: `/org/${organization?.slug}/usage?projectRef=${ref}`,
           items: [],
-          rightIcon: <ArrowUpRight strokeWidth={1} className="h-4 w-4" />,
+          rightIcon: <ArrowUpRightIcon strokeWidth={1} className="h-4 w-4" />,
         },
       ],
     },

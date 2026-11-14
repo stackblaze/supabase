@@ -4,6 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ServiceVersionsSection } from './ServiceVersionsSection'
 
+// These suites cover the hosted UI. Self-hosted Studio on a hosting platform hides pause,
+// the restart-type menu and upgrade checks (stackblaze/supabase#23, #25); see the
+// self-hosted case at the end.
+const platform = vi.hoisted(() => ({ isPlatform: true }))
+vi.mock('@/lib/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/constants')>()),
+  get IS_PLATFORM() {
+    return platform.isPlatform
+  },
+}))
+
 const {
   mockUseFeatures,
   mockUseIsOrioleDb,
@@ -58,10 +69,19 @@ vi.mock('ui-patterns/Admonition', () => ({
 }))
 
 vi.mock('ui-patterns/form/FormItemLayout/FormItemLayout', () => ({
-  FormItemLayout: ({ label, children }: { label: ReactNode; children: ReactNode }) => (
+  FormItemLayout: ({
+    label,
+    description,
+    children,
+  }: {
+    label: ReactNode
+    description?: ReactNode
+    children: ReactNode
+  }) => (
     <label>
       {label}
       {children}
+      {description && <div>{description}</div>}
     </label>
   ),
 }))
@@ -101,6 +121,12 @@ vi.mock('@/components/ui/AlertError', () => ({
   AlertError: ({ subject }: { subject: string }) => <div>{subject}</div>,
 }))
 
+vi.mock('@/components/ui/InlineLink', () => ({
+  InlineLink: ({ href, children }: { href: string; children: ReactNode }) => (
+    <a href={href}>{children}</a>
+  ),
+}))
+
 vi.mock('@/data/config/project-upgrade-eligibility-query', () => ({
   useProjectUpgradeEligibilityQuery: mockUseUpgradeEligibility,
 }))
@@ -122,6 +148,22 @@ vi.mock('@/hooks/misc/useSelectedProject', () => ({
   useSelectedProjectQuery: mockUseProject,
   useIsAwsK8sCloudProvider: mockIsAwsK8sCloudProvider,
 }))
+
+const LATEST_VERSION_HINT = 'This project is already on the latest version of Postgres'
+
+const latestVersionEligibility = {
+  data: {
+    current_app_version: 'supabase-postgres-17.4.1.060',
+    latest_app_version: 'supabase-postgres-17.4.1.060',
+    eligible: false,
+    validation_errors: [],
+    warnings: [],
+  },
+  error: undefined,
+  isPending: false,
+  isError: false,
+  isSuccess: true,
+}
 
 describe('ServiceVersionsSection', () => {
   beforeEach(() => {
@@ -209,6 +251,7 @@ describe('ServiceVersionsSection', () => {
 
     expect(screen.getByText('Read replicas block upgrade to 17.4.1.060')).toBeInTheDocument()
     expect(screen.queryByText('Project upgrade available')).not.toBeInTheDocument()
+    expect(screen.queryByText(LATEST_VERSION_HINT, { exact: false })).not.toBeInTheDocument()
   })
 
   it('renders upgrade validation errors and warnings for an ineligible project', () => {
@@ -233,6 +276,7 @@ describe('ServiceVersionsSection', () => {
       screen.getByText('Validation warnings: Review extension compatibility')
     ).toBeInTheDocument()
     expect(screen.queryByText('Project upgrade available')).not.toBeInTheDocument()
+    expect(screen.queryByText(LATEST_VERSION_HINT, { exact: false })).not.toBeInTheDocument()
   })
 
   it('preserves eligibility and service-version loading and error states', () => {
@@ -281,11 +325,75 @@ describe('ServiceVersionsSection', () => {
     expect(screen.getByText('Failed to retrieve versions')).toBeInTheDocument()
   })
 
+  it('shows the latest-version description with a docs link when on the latest version', () => {
+    mockUseUpgradeEligibility.mockReturnValue(latestVersionEligibility)
+
+    render(<ServiceVersionsSection />)
+
+    expect(screen.getByText(LATEST_VERSION_HINT, { exact: false })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Learn more' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/guides/platform/upgrading')
+    )
+  })
+
+  it('hides the latest-version description when database upgrades are disabled', () => {
+    mockUseFeatures.mockReturnValue({
+      projectAuthAll: true,
+      projectSettingsDatabaseUpgrades: false,
+    })
+    mockUseUpgradeEligibility.mockReturnValue(latestVersionEligibility)
+
+    render(<ServiceVersionsSection />)
+
+    expect(screen.queryByText(LATEST_VERSION_HINT, { exact: false })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['an eligible upgrade', { eligible: true }],
+    ['a validation error', { validation_errors: ['Remove read replicas'] }],
+    ['a warning', { warnings: ['Review extension compatibility'] }],
+  ])('hides the latest-version description when eligibility reports %s', (_, overrides) => {
+    mockUseUpgradeEligibility.mockReturnValue({
+      ...latestVersionEligibility,
+      data: { ...latestVersionEligibility.data, ...overrides },
+    })
+
+    render(<ServiceVersionsSection />)
+
+    expect(screen.queryByText(LATEST_VERSION_HINT, { exact: false })).not.toBeInTheDocument()
+  })
+
   it('does not offer upgrade for v3 projects', () => {
     mockIsAwsK8sCloudProvider.mockReturnValue(true)
+    mockUseUpgradeEligibility.mockReturnValue(latestVersionEligibility)
 
     render(<ServiceVersionsSection />)
 
     expect(screen.queryByText('Project upgrade available')).not.toBeInTheDocument()
+    expect(screen.queryByText(LATEST_VERSION_HINT, { exact: false })).not.toBeInTheDocument()
+  })
+
+  it('shows versions without upgrade checks when self-hosted', () => {
+    platform.isPlatform = false
+    try {
+      mockUseUpgradeEligibility.mockReturnValue({
+        data: undefined,
+        error: undefined,
+        isPending: true,
+        isError: false,
+        isSuccess: false,
+      })
+
+      render(<ServiceVersionsSection />)
+
+      expect(
+        screen.getByText('Versions of the services running for this project.')
+      ).toBeInTheDocument()
+      expect(screen.getByDisplayValue('2.180.0')).toBeInTheDocument()
+      expect(screen.queryByText('Project upgrade available')).not.toBeInTheDocument()
+    } finally {
+      platform.isPlatform = true
+    }
   })
 })

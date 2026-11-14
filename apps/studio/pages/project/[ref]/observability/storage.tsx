@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { ArrowRight, ExternalLinkIcon, RefreshCw } from 'lucide-react'
+import { ArrowRightIcon, ExternalLinkIcon, RefreshCwIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Button } from 'ui'
@@ -96,8 +96,7 @@ export const StorageReport: NextPageWithLayout = () => {
       <ReportStickyNav
         content={
           <div className="flex flex-col gap-2 w-full">
-            <div className="ml-auto flex items-center gap-2 flex-wrap">
-              <DocsButton href={OBSERVABILITY_DOCS_HREFS.storage} topic={REPORT_TITLE} />
+            <div className="w-full flex items-center gap-2 flex-wrap">
               <ShortcutTooltip
                 shortcutId={SHORTCUT_IDS.OBSERVABILITY_REFRESH}
                 label="Refresh report"
@@ -105,7 +104,7 @@ export const StorageReport: NextPageWithLayout = () => {
               >
                 <Button
                   disabled={report.isLoading}
-                  icon={<RefreshCw className={report.isLoading ? 'animate-spin' : ''} />}
+                  icon={<RefreshCwIcon className={report.isLoading ? 'animate-spin' : ''} />}
                   className="w-7"
                   onClick={onRefreshReport}
                 />
@@ -119,12 +118,12 @@ export const StorageReport: NextPageWithLayout = () => {
                 shortcutId={SHORTCUT_IDS.OBSERVABILITY_TOGGLE_DATE_PICKER}
               />
               {selectedDateRange && (
-                <div className="flex items-center gap-x-2 text-xs">
+                <div className="order-last flex w-full flex-wrap items-center gap-x-2 text-xs xl:order-none xl:w-auto">
                   <p className="text-foreground-light">
                     {dayjs(selectedDateRange.period_start.date).format('MMM D, h:mma')}
                   </p>
                   <p className="text-foreground-light">
-                    <ArrowRight size={12} />
+                    <ArrowRightIcon size={12} />
                   </p>
                   <p className="text-foreground-light">
                     {dayjs(selectedDateRange.period_end.date).format('MMM D, h:mma')}
@@ -137,6 +136,11 @@ export const StorageReport: NextPageWithLayout = () => {
                 title="Report date range"
                 description="Report data can be stored for a maximum of 3 months depending on the plan that your project is on."
                 source="storageReportDateRange"
+              />
+              <DocsButton
+                href={OBSERVABILITY_DOCS_HREFS.storage}
+                topic={REPORT_TITLE}
+                className="ml-auto"
               />
             </div>
             <ReportFilterBar

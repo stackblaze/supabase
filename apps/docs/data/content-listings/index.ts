@@ -2,7 +2,8 @@ import type { ContentListingGroup } from '~/lib/content-listings.schema'
 
 import { aiToolsBuildingIntoApp, aiToolsSupportedAgents } from './ai-tools.data'
 import { authGetStarted, authNextSteps, authPricing } from './auth.data'
-import { databaseGetStarted, databaseNextSteps } from './database.data'
+import { contributingDetails } from './contributing.data'
+import { databaseGetStarted, databaseMultigresWhatYouGet, databaseNextSteps } from './database.data'
 import {
   functionsExamplesAiMedia,
   functionsExamplesMessaging,
@@ -35,18 +36,37 @@ import { storageExamples, storageGetStarted, storageResources } from './storage.
 import {
   telemetryAccessWhat,
   telemetryDetect,
-  telemetryDiagnose,
   telemetryExport,
   telemetryHireAgent,
 } from './telemetry.data'
+import {
+  supabaseWayAuthBuild,
+  supabaseWayDatabaseBuild,
+  supabaseWayFunctionsBuild,
+  supabaseWayProductionBuild,
+  supabaseWayProgression,
+  supabaseWayRealtimeBuild,
+  supabaseWayRlsBuild,
+  supabaseWayStorageBuild,
+} from './the-supabase-way-to-build.data'
 
 const ALL_GROUPS: readonly ContentListingGroup[] = [
   aiToolsSupportedAgents,
   aiToolsBuildingIntoApp,
+  supabaseWayProgression,
+  supabaseWayDatabaseBuild,
+  supabaseWayAuthBuild,
+  supabaseWayRlsBuild,
+  supabaseWayRealtimeBuild,
+  supabaseWayStorageBuild,
+  supabaseWayFunctionsBuild,
+  supabaseWayProductionBuild,
+  contributingDetails,
   authGetStarted,
   authPricing,
   authNextSteps,
   databaseGetStarted,
+  databaseMultigresWhatYouGet,
   databaseNextSteps,
   functionsGetStarted,
   functionsExamplesSupabase,
@@ -77,7 +97,6 @@ const ALL_GROUPS: readonly ContentListingGroup[] = [
   storageResources,
   telemetryAccessWhat,
   telemetryDetect,
-  telemetryDiagnose,
   telemetryHireAgent,
   telemetryExport,
 ]

@@ -6,7 +6,8 @@ import type { components } from '@/data/api'
 import { get, handleError } from '@/data/fetchers'
 import { useProjectDetailQuery } from '@/data/projects/project-detail-query'
 import { IS_PLATFORM } from '@/lib/constants'
-import type { ResponseError, UseCustomQueryOptions } from '@/types'
+import type { StudioError } from '@/lib/errors/studio-errors'
+import type { UseCustomQueryOptions } from '@/types'
 
 export type AuthConfigVariables = {
   projectRef?: string
@@ -30,7 +31,7 @@ export async function getProjectAuthConfig(
 }
 
 export type ProjectAuthConfigData = Awaited<ReturnType<typeof getProjectAuthConfig>>
-export type ProjectAuthConfigError = ResponseError
+export type ProjectAuthConfigError = StudioError
 
 export const useAuthConfigQuery = <TData = ProjectAuthConfigData>(
   { projectRef }: AuthConfigVariables,

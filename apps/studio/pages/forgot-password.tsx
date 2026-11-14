@@ -3,10 +3,13 @@ import Link from 'next/link'
 import { ForgotPasswordWizard } from '@/components/interfaces/SignIn/ForgotPasswordWizard'
 import { SelfHostedForgotPasswordPage } from '@/components/interfaces/SignIn/SelfHostedForgotPassword'
 import { ForgotPasswordLayout } from '@/components/layouts/SignInLayout/ForgotPasswordLayout'
+import { useHydratedQuery } from '@/hooks/misc/useHydratedQuery'
 import { IS_PLATFORM } from '@/lib/constants'
 import type { NextPageWithLayout } from '@/types'
 
 const ForgotPasswordPage: NextPageWithLayout = () => {
+  const query = useHydratedQuery()
+
   return (
     <>
       <div className="flex flex-col gap-4">
@@ -15,7 +18,10 @@ const ForgotPasswordPage: NextPageWithLayout = () => {
 
       <div className="my-8 self-center text-sm">
         <span className="text-foreground-light">Already have an account?</span>{' '}
-        <Link href="/sign-in" className="underline hover:text-foreground-light">
+        <Link
+          href={{ pathname: '/sign-in', query }}
+          className="underline hover:text-foreground-light"
+        >
           Sign in
         </Link>
       </div>

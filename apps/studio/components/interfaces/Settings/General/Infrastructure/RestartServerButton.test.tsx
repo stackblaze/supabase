@@ -5,6 +5,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RestartServerButton } from './RestartServerButton'
 import { customRender } from '@/tests/lib/custom-render'
 
+// These suites cover the hosted UI. Self-hosted Studio on a hosting platform hides pause,
+// the restart-type menu and upgrade checks (stackblaze/supabase#23, #25); see the
+// self-hosted case at the end.
+const platform = vi.hoisted(() => ({ isPlatform: true }))
+vi.mock('@/lib/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/constants')>()),
+  get IS_PLATFORM() {
+    return platform.isPlatform
+  },
+}))
+
 const {
   mockUseAsyncCheckPermissions,
   mockUseFlag,
@@ -26,8 +37,9 @@ vi.mock('next/router', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }))
 
-vi.mock('@/hooks/misc/useCheckPermissions', () => ({
-  useAsyncCheckPermissions: mockUseAsyncCheckPermissions,
+vi.mock('@/hooks/misc/useCheckPermissionsV2', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/misc/useCheckPermissionsV2')>()),
+  useAsyncCheckPermissionsV2: mockUseAsyncCheckPermissions,
 }))
 
 vi.mock('@/hooks/misc/useIsFeatureEnabled', () => ({
@@ -66,5 +78,17 @@ describe('RestartServerButton', () => {
     await user.keyboard('{Enter}')
     expect(await screen.findByRole('menuitem', { name: /Fast database reboot/ })).toHaveFocus()
     expect(screen.getByText(/Other project services remain running/)).toBeVisible()
+  })
+
+  it('has no restart-type menu when self-hosted', () => {
+    platform.isPlatform = false
+    try {
+      customRender(<RestartServerButton />)
+
+      expect(screen.getByRole('button', { name: 'Restart project' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Choose restart type' })).not.toBeInTheDocument()
+    } finally {
+      platform.isPlatform = true
+    }
   })
 })

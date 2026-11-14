@@ -2,10 +2,12 @@ import { safeSql } from '@supabase/pg-meta/src/pg-format'
 import { useQuery } from '@tanstack/react-query'
 
 import { databaseKeys } from './keys'
+import { unguarded } from '@/data/fetchers'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { IS_PLATFORM, PROJECT_STATUS } from '@/lib/constants'
-import type { ResponseError, UseCustomQueryOptions } from '@/types'
+import type { StudioError } from '@/lib/errors/studio-errors'
+import type { UseCustomQueryOptions } from '@/types'
 
 export type SupamonitorEnabledVariables = {
   projectRef?: string
@@ -23,7 +25,10 @@ export async function getSupamonitorEnabled({
   const { result } = await executeSql<{ libraries: string }[]>({
     projectRef,
     connectionString,
+    sqlOrigin: 'studio',
+    queryName: 'supamonitor-enabled',
     sql: safeSql`SELECT current_setting('shared_preload_libraries', true) AS libraries`,
+    grant: unguarded.migrating,
   })
 
   const libraries = result[0]?.libraries ?? ''
@@ -31,7 +36,7 @@ export async function getSupamonitorEnabled({
 }
 
 export type SupamonitorEnabledData = Awaited<ReturnType<typeof getSupamonitorEnabled>>
-export type SupamonitorEnabledError = ResponseError
+export type SupamonitorEnabledError = StudioError
 
 export const useSupamonitorEnabledQuery = <TData = SupamonitorEnabledData>(
   { projectRef, connectionString }: SupamonitorEnabledVariables,

@@ -1,7 +1,7 @@
 import { useParams } from 'common'
 
 import { useIsColumnLevelPrivilegesEnabled } from '@/components/interfaces/App/FeaturePreview/FeaturePreviewContext'
-import { useIsETLPrivateAlpha } from '@/components/interfaces/Database/Replication/useIsETLPrivateAlpha'
+import { useIsPipelinesEnabled } from '@/components/interfaces/Database/Replication/useIsPipelinesEnabled'
 import type {
   ProductMenuGroup,
   ProductMenuGroupItem,
@@ -29,7 +29,7 @@ export const useGenerateDatabaseMenu = (): ProductMenuGroup[] => {
   // Self-hosted: the platform's backups of this database, when wired at deploy.
   const platformBackupsEnabled = usePlatformBackupsEnabled()
   const columnLevelPrivileges = useIsColumnLevelPrivilegesEnabled()
-  const enablePgReplicate = useIsETLPrivateAlpha()
+  const enablePgReplicate = useIsPipelinesEnabled()
 
   const getDatabaseURL = (path: string) => `/project/${ref}/database/${path}`
 

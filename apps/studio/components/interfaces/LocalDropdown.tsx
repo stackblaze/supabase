@@ -1,4 +1,4 @@
-import { FlaskConical, LogOut, Settings, Users } from 'lucide-react'
+import { FlaskConicalIcon, LogOutIcon, SettingsIcon, UsersIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -65,7 +65,7 @@ export const LocalDropdown = ({
               }
             }}
           >
-            <Settings size={14} strokeWidth={1.5} className="text-foreground-lighter" />
+            <SettingsIcon size={14} strokeWidth={1.5} className="text-foreground-lighter" />
             Preferences
           </Link>
         </DropdownMenuItem>
@@ -74,7 +74,7 @@ export const LocalDropdown = ({
           onClick={() => toggleFeaturePreviewModal(true)}
           onSelect={() => toggleFeaturePreviewModal(true)}
         >
-          <FlaskConical size={14} strokeWidth={1.5} className="text-foreground-lighter" />
+          <FlaskConicalIcon size={14} strokeWidth={1.5} className="text-foreground-lighter" />
           Feature previews
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -112,7 +112,7 @@ export const LocalDropdown = ({
             <DropdownMenuGroup>
               <DropdownMenuItem className="flex gap-2 cursor-pointer" asChild>
                 <Link href="/project/default/settings/studio-access">
-                  <Users size={14} strokeWidth={1.5} className="text-foreground-lighter" />
+                  <UsersIcon size={14} strokeWidth={1.5} className="text-foreground-lighter" />
                   Studio access
                 </Link>
               </DropdownMenuItem>
@@ -122,7 +122,7 @@ export const LocalDropdown = ({
                   router.push('/sign-out')
                 }}
               >
-                <LogOut size={14} strokeWidth={1.5} className="text-foreground-lighter" />
+                <LogOutIcon size={14} strokeWidth={1.5} className="text-foreground-lighter" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuGroup>
