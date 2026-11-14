@@ -20,7 +20,7 @@ export const PlatformBackupsPage: NextPageWithLayout = () => (
         <PageHeaderSummary>
           <PageHeaderTitle>Database Backups</PageHeaderTitle>
           <PageHeaderDescription>
-            Taken and kept by the platform; a restore goes into a new database
+            Taken and kept by the platform; restore replaces the live database
           </PageHeaderDescription>
         </PageHeaderSummary>
       </PageHeaderMeta>
