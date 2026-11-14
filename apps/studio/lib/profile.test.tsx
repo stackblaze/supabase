@@ -140,3 +140,36 @@ describe('ProfileProvider profile creation', () => {
     expect(postSpy).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('ProfileProvider on an unauthorized profile', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    addAPIMock({
+      method: 'get',
+      path: '/platform/profile',
+      response: () => errorResponse('Unauthorized', 401),
+    })
+  })
+
+  it('sends the user to sign-in', async () => {
+    const { default: mockRouter } = await import('next-router-mock')
+    mockRouter.setCurrentUrl('/project/default')
+
+    renderProvider()
+
+    await waitFor(() => expect(mockRouter.asPath).toBe('/sign-in'))
+  })
+
+  it('stays put when already on sign-in, so the page does not reload in a loop', async () => {
+    const { default: mockRouter } = await import('next-router-mock')
+    mockRouter.setCurrentUrl('/sign-in?returnTo=%2Fproject%2Fdefault')
+    const push = vi.spyOn(mockRouter, 'push')
+
+    renderProvider()
+
+    await waitFor(() => expect(screen.getByText('no-profile')).toBeInTheDocument())
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    expect(push).not.toHaveBeenCalled()
+    expect(mockRouter.asPath).toBe('/sign-in?returnTo=%2Fproject%2Fdefault')
+  })
+})
