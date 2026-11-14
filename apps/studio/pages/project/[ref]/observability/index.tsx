@@ -41,6 +41,7 @@ export const UserReportPage: NextPageWithLayout = () => {
   })
 
   useEffect(() => {
+    if (!IS_PLATFORM) return // Self-hosted redirects below
     if (!isSuccess) return
     if (!flagsLoaded) return // Wait for flags to load before checking redirect
     if (showOverview) return // Don't redirect if overview is enabled
@@ -59,6 +60,13 @@ export const UserReportPage: NextPageWithLayout = () => {
       type: 'report',
     }
   )
+
+  // Self-hosted without log analytics: the log-backed overview and reports have nothing to show,
+  // so open Query performance, which reads the database itself.
+  const selfHostedWithoutLogs = !IS_PLATFORM && !showOverview
+  useEffect(() => {
+    if (selfHostedWithoutLogs) router.replace(`/project/${ref}/observability/query-performance`)
+  }, [selfHostedWithoutLogs, router, ref])
 
   // Self-hosted has no feature flags or saved reports to wait for.
   if (!IS_PLATFORM && showOverview) {
