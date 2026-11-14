@@ -413,7 +413,7 @@ export const PlatformBackups = () => {
       <ConfirmationModal
         visible={restoring !== undefined}
         title="Restore into a new database"
-        confirmLabel="Restore into a new database"
+        confirmLabel="Restore"
         loading={restore.isPending}
         onCancel={() => setRestoring(undefined)}
         onConfirm={() => restoring && restore.mutate(restoring)}
