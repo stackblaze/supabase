@@ -39,9 +39,8 @@ export function SettingsDatabasePlatformPooler() {
       <CardContent className="space-y-4">
         <p className="text-sm text-foreground-light">
           The platform runs a PgBouncer pooler for this project, in transaction mode. Use it for
-          serverless functions and other short-lived connections: same users, passwords and
-          database as the direct connection. It is reachable from inside the platform, like the
-          database.
+          serverless functions and other short-lived connections: same users, passwords and database
+          as the direct connection. It is reachable from inside the platform, like the database.
         </p>
         <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
           {rows.map(([label, value]) => (
@@ -53,7 +52,7 @@ export function SettingsDatabasePlatformPooler() {
         </dl>
         <div className="flex items-center gap-2">
           <code className="text-xs break-all flex-1">{uri}</code>
-          <CopyButton type="default" text={uri} />
+          <CopyButton variant="default" text={uri} />
         </div>
       </CardContent>
     </Card>

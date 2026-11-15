@@ -54,8 +54,7 @@ const PLATFORM_POOLER_METHOD_DESCRIPTIONS: Record<string, string> = {
   transaction:
     'PgBouncer in transaction mode, run for this project by the platform. Ideal for serverless functions and short-lived connections.',
   session: 'PgBouncer has no session mode: this is the direct connection.',
-  direct:
-    'Ideal for long-lived connections. Reachable inside the platform, like the pooler.',
+  direct: 'Ideal for long-lived connections. Reachable inside the platform, like the pooler.',
 }
 
 function getFieldOptionsFromSource({
