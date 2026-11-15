@@ -73,7 +73,16 @@ function useConnectionStringPooler(deploymentMode: DeploymentMode): ConnectionSt
   // render and invalidate the final useMemo on each tick (and ripple through
   // every consumer that lists ConnectionStringPooler in their own deps).
   const connectionInfo = useMemo(() => {
-    const DB_FIELDS = ['db_host', 'db_name', 'db_port', 'db_user', 'inserted_at']
+    // pooler_*: the hosting platform's PgBouncer (self-hosted, platformPooler).
+    const DB_FIELDS = [
+      'db_host',
+      'db_name',
+      'db_port',
+      'db_user',
+      'inserted_at',
+      'pooler_host',
+      'pooler_port',
+    ]
     const emptyState = { db_user: '', db_host: '', db_port: '', db_name: '' }
     return pluckObjectFields(settings || emptyState, DB_FIELDS)
   }, [settings])

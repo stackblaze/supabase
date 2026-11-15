@@ -450,6 +450,35 @@ describe('useConnectState', () => {
       expect(result.current.state.connectionMethod).toBe(expected)
     })
 
+    test('self-hosted on a platform PgBouncer: transaction by default, pooler descriptions', () => {
+      Object.assign(deploymentModeMock, SELF_HOSTED)
+      readReplicasMock.data = [
+        {
+          identifier: 'test-ref',
+          region: 'local',
+          inserted_at: '',
+          pooler_host: 'db-pooler.ns.svc.cluster.local',
+        } as any,
+      ]
+      try {
+        const { result } = renderHook(() => useConnectState({ mode: 'framework' }))
+        act(() => {
+          result.current.setMode('direct')
+        })
+        expect(result.current.state.connectionMethod).toBe('transaction')
+        const options = result.current.getFieldOptions('connectionMethod')
+        expect(options.find((o) => o.value === 'transaction')?.description).toContain(
+          'PgBouncer in transaction mode'
+        )
+        expect(options.find((o) => o.value === 'session')?.description).toContain(
+          'PgBouncer has no session mode'
+        )
+        expect(options.find((o) => o.value === 'session')?.description).not.toContain('Supavisor')
+      } finally {
+        readReplicasMock.data = []
+      }
+    })
+
     describe('mcp features for deployment mode', () => {
       test('self-hosted defaults and options stay within the non-platform subset', () => {
         Object.assign(deploymentModeMock, SELF_HOSTED)

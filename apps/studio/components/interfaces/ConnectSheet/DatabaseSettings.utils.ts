@@ -85,9 +85,9 @@ export const getSelfHostedPoolerStrings = (
 export const getSelfHostedDirectStrings = (
   dbHost: string,
   port: number | string,
-  dbName: string = 'postgres'
+  dbName: string = 'postgres',
+  user: string = 'postgres'
 ): ConnectionStrings => {
-  const user = 'postgres'
   const password = '[YOUR-PASSWORD]'
 
   const uri = `postgresql://${user}:${password}@${dbHost}:${port}/${dbName}`
@@ -260,12 +260,49 @@ export const buildConnectionStringPooler = ({
   isHighAvailability,
 }: {
   deploymentMode: DeploymentMode
-  connectionInfo: { db_host: string; db_port: number | string }
+  connectionInfo: {
+    db_host: string
+    db_port: number | string
+    db_name?: string
+    db_user?: string
+    /** The hosting platform's PgBouncer (platformPooler), when it runs one. */
+    pooler_host?: string
+    pooler_port?: number | string
+  }
   connectionStringsShared: { direct: ConnectionStrings; pooler: ConnectionStrings }
   connectionStringsDedicated?: { direct: ConnectionStrings; pooler: ConnectionStrings }
   ipv4Addon: boolean
   isHighAvailability: boolean
 }): ConnectionStringPooler => {
+  if (deploymentMode.isSelfHosted && connectionInfo.pooler_host) {
+    // On a hosting platform that runs CloudNativePG's PgBouncer for this project: the
+    // transaction pooler (Supabase's 6543) is that pooler, with the project's own user and
+    // database. PgBouncer has no session mode, so session lands on the direct connection,
+    // as Supabase's dedicated pooler does.
+    const dbName = connectionInfo.db_name || 'postgres'
+    const dbUser = connectionInfo.db_user || 'postgres'
+    const direct = getSelfHostedDirectStrings(
+      connectionInfo.db_host,
+      connectionInfo.db_port || 5432,
+      dbName,
+      dbUser
+    )
+    const pooled = getSelfHostedDirectStrings(
+      connectionInfo.pooler_host,
+      connectionInfo.pooler_port || 5432,
+      dbName,
+      dbUser
+    )
+    return {
+      transactionShared: pooled.uri,
+      sessionShared: direct.uri,
+      transactionDedicated: undefined,
+      sessionDedicated: undefined,
+      ipv4SupportedForDedicatedPooler: false,
+      direct: direct.uri,
+    }
+  }
+
   if (deploymentMode.isSelfHosted) {
     const dbHost = connectionInfo.db_host
     const dbPort = connectionInfo.db_port || 5432

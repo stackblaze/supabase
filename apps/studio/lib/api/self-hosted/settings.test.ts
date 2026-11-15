@@ -55,6 +55,30 @@ describe('api/self-hosted/settings', () => {
       expect(settings.ssl_enforced).toBe(false)
     })
 
+    it('includes the platform PgBouncer pooler only when the platform runs one', async () => {
+      const keys = ['KUBERO_DB_INSTANCE', 'PGHOST', 'PGHOST_POOLER', 'PGPORT_POOLER'] as const
+      const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]))
+      try {
+        process.env.KUBERO_DB_INSTANCE = 'db'
+        process.env.PGHOST = 'db.ns.svc.cluster.local'
+        delete process.env.PGHOST_POOLER
+        expect(getProjectSettings()).not.toHaveProperty('pooler_host')
+
+        process.env.PGHOST_POOLER = 'db-pooler.ns.svc.cluster.local'
+        process.env.PGPORT_POOLER = '5432'
+        expect(getProjectSettings()).toMatchObject({
+          pooler_host: 'db-pooler.ns.svc.cluster.local',
+          pooler_port: 5432,
+          pooler_mode: 'transaction',
+        })
+      } finally {
+        for (const k of keys) {
+          if (saved[k] === undefined) delete process.env[k]
+          else process.env[k] = saved[k]
+        }
+      }
+    })
+
     it('should include app_config with endpoint and protocol', () => {
       const settings = getProjectSettings()
 

@@ -47,7 +47,16 @@ export const useConnectionStringDatabases = (deploymentMode: DeploymentMode) => 
   // pluckObjectFields/getConnectionStrings calls would mint fresh objects every
   // render and ripple through the resolveConnectionString useMemo below.
   return useMemo(() => {
-    const DB_FIELDS = ['db_host', 'db_name', 'db_port', 'db_user', 'inserted_at']
+    // pooler_*: the hosting platform's PgBouncer (self-hosted, platformPooler).
+    const DB_FIELDS = [
+      'db_host',
+      'db_name',
+      'db_port',
+      'db_user',
+      'inserted_at',
+      'pooler_host',
+      'pooler_port',
+    ]
     const emptyState = { db_user: '', db_host: '', db_port: '', db_name: '' }
 
     const connectionStringsByIdentifier = Object.fromEntries(

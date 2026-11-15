@@ -46,6 +46,18 @@ import { useIsHighAvailability } from '@/hooks/misc/useSelectedProject'
  * Get field options from a data source reference.
  * This maps source names to actual data.
  */
+/** The hosting platform runs a PgBouncer pooler for the project (platformPooler, self-hosted). */
+export const hasPlatformPooler = (databases: Database[]) =>
+  databases.some((db) => !!(db as { pooler_host?: string })?.pooler_host)
+
+const PLATFORM_POOLER_METHOD_DESCRIPTIONS: Record<string, string> = {
+  transaction:
+    'PgBouncer in transaction mode, run for this project by the platform. Ideal for serverless functions and short-lived connections.',
+  session: 'PgBouncer has no session mode: this is the direct connection.',
+  direct:
+    'Ideal for long-lived connections. Reachable inside the platform, like the pooler.',
+}
+
 function getFieldOptionsFromSource({
   source,
   state,
@@ -128,6 +140,14 @@ function getFieldOptionsFromSource({
       const filtered = allowed
         .map((value) => all.find((m) => m.value === value))
         .filter((m): m is (typeof all)[number] => !!m)
+      // On a hosting platform that runs a PgBouncer pooler for the project (platformPooler).
+      if (deploymentMode.isSelfHosted && hasPlatformPooler(databases)) {
+        return filtered.map((m) => ({
+          value: m.value,
+          label: m.label,
+          description: PLATFORM_POOLER_METHOD_DESCRIPTIONS[m.value] ?? m.description,
+        }))
+      }
       return filtered.map((m) => ({
         value: m.value,
         label: m.label,
@@ -351,7 +371,11 @@ export function useConnectState(initialState?: Partial<ConnectState>): UseConnec
         }
 
         if (mode === 'direct') {
-          const defaultMethod = deploymentMode.isSelfHosted ? 'session' : 'direct'
+          const defaultMethod = deploymentMode.isSelfHosted
+            ? hasPlatformPooler(databases)
+              ? 'transaction'
+              : 'session'
+            : 'direct'
           next.connectionMethod = next.connectionMethod ?? defaultMethod
           next.connectionType = next.connectionType ?? 'uri'
           next.connectionSource = projectRef ?? '_'
@@ -375,7 +399,7 @@ export function useConnectState(initialState?: Partial<ConnectState>): UseConnec
         return next
       })
     },
-    [projectRef, deploymentMode.isSelfHosted, deploymentMode.isPlatform]
+    [projectRef, deploymentMode.isSelfHosted, deploymentMode.isPlatform, databases]
   )
 
   // Multigres has no pooler, so pooler-flavored selections restored from the

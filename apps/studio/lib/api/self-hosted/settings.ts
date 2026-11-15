@@ -1,7 +1,7 @@
 import { components } from 'api-types'
 
 import { AUTH_JWT_SECRET, POSTGRES_PORT } from './constants'
-import { platformDatabase } from './platform-project'
+import { platformDatabase, platformPooler } from './platform-project'
 import { assertSelfHosted } from './util'
 import { PROJECT_DB_HOST, PROJECT_ENDPOINT, PROJECT_ENDPOINT_PROTOCOL } from '@/lib/constants/api'
 
@@ -36,6 +36,8 @@ export function getProjectSettings() {
     db_name: platformDatabase()?.db_name ?? 'postgres',
     db_port: platformDatabase()?.db_port ?? POSTGRES_PORT,
     db_user: platformDatabase()?.db_user ?? 'postgres',
+    // The platform's PgBouncer pooler, if any (Connect dialog, Database Settings).
+    ...(platformPooler() ?? {}),
     inserted_at: '2021-08-02T06:40:40.646Z',
     jwt_secret: AUTH_JWT_SECRET,
     name: process.env.DEFAULT_PROJECT_NAME || 'Default Project',
