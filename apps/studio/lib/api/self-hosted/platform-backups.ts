@@ -118,3 +118,58 @@ export const deleteBackup = (key: string) =>
 export const getSchedule = () => call<DumpSchedule>('GET', `${base()}/db-schedule`)
 export const setSchedule = (schedule: { cadences: DumpCadence[]; dbNames?: string[] | null }) =>
   call<DumpSchedule>('PUT', `${base()}/db-schedule`, schedule)
+
+/** A restore to a point in time: a NEW database recovered from the WAL archive. */
+type PlatformPitrRestore = {
+  instance: string
+  targetTime: string | null
+  requestedAt: string | null
+  phase: string | null
+  ready: boolean
+  /** requested → running → done | failed (Studio's project restore). */
+  cutover: string | null
+  error: string | null
+}
+/** Point-in-time recovery of this deployment's database (kubero-server #2407). */
+type PlatformPitr = {
+  instance: string
+  displayName: string | null
+  available: boolean
+  unavailableReason: string | null
+  enabled: boolean
+  retentionDays: number | null
+  retentionChoices: number[]
+  maxRetentionDays: number | null
+  walArchiving: {
+    healthy: boolean | null
+    lastArchivedTime: string | null
+    lastFailedTime: string | null
+  }
+  firstRecoverableTime: string | null
+  lastRecoverableTime: string | null
+  lastBaseBackupTime: string | null
+  archiveKeptUntil: string | null
+  restores: PlatformPitrRestore[]
+  restoredFrom: PlatformPitrRestore | null
+}
+type PitrRestoreStarted = {
+  ok: boolean
+  source: string
+  instance: string
+  displayName: string
+  targetTime: string
+  cutover: boolean
+  message: string
+}
+
+export const getPitr = () => call<PlatformPitr>('GET', `${dbPath()}/pitr`)
+/** The user's save: on with a retention (days, capped by the plan), or off. */
+export const setPitr = (body: { enabled: boolean; retentionDays?: number }) =>
+  call<PlatformPitr>('PUT', `${dbPath()}/pitr`, body)
+/**
+ * Restore the project's database to `targetTime`, like the Supabase platform: the platform
+ * recovers it into a new database from the WAL archive, then moves every app of this deployment
+ * onto it (Studio restarts). The old database is kept until it is deleted on the dashboard.
+ */
+export const restorePitr = (targetTime: string) =>
+  call<PitrRestoreStarted>('POST', `${dbPath()}/restore-pitr`, { targetTime, cutover: true })
