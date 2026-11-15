@@ -99,6 +99,21 @@ export function platformDatabase() {
   }
 }
 
+/**
+ * The deployment's connection pooler, when the platform runs one: CloudNativePG's PgBouncer in
+ * transaction mode (Supabase's port 6543), in-cluster like the database. Same users, passwords
+ * and database as the direct connection. The platform sets PGHOST_POOLER / PGPORT_POOLER only
+ * when the template's database bundles a pooler.
+ */
+export function platformPooler() {
+  if (!process.env.KUBERO_DB_INSTANCE || !process.env.PGHOST_POOLER) return null
+  return {
+    pooler_host: process.env.PGHOST_POOLER,
+    pooler_port: parseInt(process.env.PGPORT_POOLER || '5432', 10),
+    pooler_mode: 'transaction' as const,
+  }
+}
+
 /** A secret of the deployment's functions: its name and the SHA-256 of its value. */
 export type PlatformSecret = { name: string; value: string }
 

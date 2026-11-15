@@ -21,6 +21,7 @@ import { JitDbAccessConfiguration } from '@/components/interfaces/Settings/Datab
 import { NetworkRestrictions } from '@/components/interfaces/Settings/Database/NetworkRestrictions/NetworkRestrictions'
 import { PoolingModesModal } from '@/components/interfaces/Settings/Database/PoolingModesModal'
 import { SettingsDatabaseEmptyStateLocal } from '@/components/interfaces/Settings/Database/SettingsDatabaseEmptyStateLocal'
+import { SettingsDatabasePlatformPooler } from '@/components/interfaces/Settings/Database/SettingsDatabasePlatformPooler'
 import { SSLConfiguration } from '@/components/interfaces/Settings/Database/SSLConfiguration'
 import { DatabaseLayout } from '@/components/layouts/DatabaseLayout/DatabaseLayout'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
@@ -73,6 +74,7 @@ const DatabaseSettings: NextPageWithLayout = () => {
         <PageContainer size="small" className="pb-12">
           <PageSection>
             <PageSectionContent className="space-y-4 md:space-y-8">
+              <SettingsDatabasePlatformPooler />
               <SettingsDatabaseEmptyStateLocal />
             </PageSectionContent>
           </PageSection>

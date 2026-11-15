@@ -67,6 +67,11 @@ describe('getSelfHostedPoolerStrings', () => {
 })
 
 describe('getSelfHostedDirectStrings', () => {
+  test('takes the user when given', () => {
+    const strings = getSelfHostedDirectStrings('db.example.com', 5432, 'mydb', 'owner')
+    expect(strings.uri).toBe('postgresql://owner:[YOUR-PASSWORD]@db.example.com:5432/mydb')
+  })
+
   test('uses plain postgres user (no tenant id)', () => {
     const strings = getSelfHostedDirectStrings('db.example.com', 5432)
     expect(strings.uri).toBe('postgresql://postgres:[YOUR-PASSWORD]@db.example.com:5432/postgres')
@@ -162,6 +167,35 @@ describe('buildConnectionStringPooler', () => {
     expect(result.transactionDedicated).toBeUndefined()
     expect(result.sessionDedicated).toBeUndefined()
     // ipv4Addon=true must NOT leak into self-hosted: there's no dedicated pooler here
+    expect(result.ipv4SupportedForDedicatedPooler).toBe(false)
+  })
+
+  test('self-hosted on a platform PgBouncer: transaction = the pooler, session = direct', () => {
+    const result = buildConnectionStringPooler({
+      deploymentMode: selfHosted,
+      connectionInfo: {
+        db_host: 'db-rw.ns.svc.cluster.local',
+        db_port: 5432,
+        db_name: 'supabase',
+        db_user: 'postgres',
+        pooler_host: 'db-pooler.ns.svc.cluster.local',
+        pooler_port: 5432,
+      },
+      connectionStringsShared: sharedPlatform,
+      ipv4Addon: true,
+      isHighAvailability: false,
+    })
+
+    expect(result.transactionShared).toBe(
+      'postgresql://postgres:[YOUR-PASSWORD]@db-pooler.ns.svc.cluster.local:5432/supabase'
+    )
+    expect(result.direct).toBe(
+      'postgresql://postgres:[YOUR-PASSWORD]@db-rw.ns.svc.cluster.local:5432/supabase'
+    )
+    // PgBouncer has no session mode: session is the direct connection.
+    expect(result.sessionShared).toBe(result.direct)
+    expect(result.transactionShared).not.toContain('POOLER_TENANT_ID')
+    expect(result.transactionDedicated).toBeUndefined()
     expect(result.ipv4SupportedForDedicatedPooler).toBe(false)
   })
 
