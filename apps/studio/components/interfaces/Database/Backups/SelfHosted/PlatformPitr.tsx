@@ -128,8 +128,8 @@ export const PlatformPitr = () => {
           }
         >
           <p>
-            Restoring to {fmt(running?.restore.targetTime ?? pending?.targetTime)} UTC.
-            {running?.restore.error ? ` ${running.restore.error}` : ''}
+            <span>Restoring to {fmt(running?.restore.targetTime ?? pending?.targetTime)} UTC.</span>
+            {running?.restore.error && <span> {running.restore.error}</span>}
           </p>
           {!finished && (
             <p className="flex items-center gap-2 mt-1">
