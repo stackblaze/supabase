@@ -16,7 +16,7 @@ import { GenericSkeletonLoader } from 'ui-patterns/ShimmeringLoader'
 import DatabaseBackupsNav from '@/components/interfaces/Database/Backups/DatabaseBackupsNav'
 import { PITRNotice } from '@/components/interfaces/Database/Backups/PITR/PITRNotice'
 import { PITRSelection } from '@/components/interfaces/Database/Backups/PITR/PITRSelection'
-import { SelfHostedBackupsRedirect } from '@/components/interfaces/Database/Backups/SelfHosted/SelfHostedBackupsRedirect'
+import { PlatformPitrPage } from '@/components/interfaces/Database/Backups/SelfHosted/PlatformBackupsPage'
 import { DatabaseLayout } from '@/components/layouts/DatabaseLayout/DatabaseLayout'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import { AlertError } from '@/components/ui/AlertError'
@@ -165,5 +165,5 @@ const PITR = () => {
   )
 }
 
-// Self-hosted Studio has one backups page (the platform's dumps); send it there.
-export default IS_PLATFORM ? DatabasePhysicalBackups : SelfHostedBackupsRedirect
+// Self-hosted Studio: the platform's point-in-time recovery (kubero-server #2407).
+export default IS_PLATFORM ? DatabasePhysicalBackups : PlatformPitrPage

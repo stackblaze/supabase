@@ -134,6 +134,7 @@ import { Route as ApiSelfHostedBackupsIndexRouteImport } from './routes/api/self
 import { Route as ApiSelfHostedBackupsDeleteRouteImport } from './routes/api/self-hosted/backups/delete'
 import { Route as ApiSelfHostedBackupsRestoreRouteImport } from './routes/api/self-hosted/backups/restore'
 import { Route as ApiSelfHostedBackupsScheduleRouteImport } from './routes/api/self-hosted/backups/schedule'
+import { Route as ApiSelfHostedBackupsPitrRouteImport } from './routes/api/self-hosted/backups/pitr'
 import { Route as ApiSelfHostedGithubInstallUrlRouteImport } from './routes/api/self-hosted/github/install-url'
 import { Route as ProjectRefAdvisorsHealthRouteImport } from './routes/project/$ref/advisors/health'
 import { Route as ProjectRefAdvisorsPerformanceRouteImport } from './routes/project/$ref/advisors/performance'
@@ -1014,6 +1015,12 @@ const ApiSelfHostedBackupsScheduleRoute =
   ApiSelfHostedBackupsScheduleRouteImport.update({
     id: '/api/self-hosted/backups/schedule',
     path: '/api/self-hosted/backups/schedule',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSelfHostedBackupsPitrRoute =
+  ApiSelfHostedBackupsPitrRouteImport.update({
+    id: '/api/self-hosted/backups/pitr',
+    path: '/api/self-hosted/backups/pitr',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiSelfHostedGithubInstallUrlRoute =
@@ -2509,6 +2516,7 @@ export interface FileRoutesByFullPath {
   '/api/self-hosted/backups/delete': typeof ApiSelfHostedBackupsDeleteRoute
   '/api/self-hosted/backups/restore': typeof ApiSelfHostedBackupsRestoreRoute
   '/api/self-hosted/backups/schedule': typeof ApiSelfHostedBackupsScheduleRoute
+  '/api/self-hosted/backups/pitr': typeof ApiSelfHostedBackupsPitrRoute
   '/api/self-hosted/github/install-url': typeof ApiSelfHostedGithubInstallUrlRoute
   '/project/$ref/advisors/health': typeof ProjectRefAdvisorsHealthRoute
   '/project/$ref/advisors/performance': typeof ProjectRefAdvisorsPerformanceRoute
@@ -2858,6 +2866,7 @@ export interface FileRoutesByTo {
   '/api/self-hosted/backups/delete': typeof ApiSelfHostedBackupsDeleteRoute
   '/api/self-hosted/backups/restore': typeof ApiSelfHostedBackupsRestoreRoute
   '/api/self-hosted/backups/schedule': typeof ApiSelfHostedBackupsScheduleRoute
+  '/api/self-hosted/backups/pitr': typeof ApiSelfHostedBackupsPitrRoute
   '/api/self-hosted/github/install-url': typeof ApiSelfHostedGithubInstallUrlRoute
   '/project/$ref/advisors/health': typeof ProjectRefAdvisorsHealthRoute
   '/project/$ref/advisors/performance': typeof ProjectRefAdvisorsPerformanceRoute
@@ -3218,6 +3227,7 @@ export interface FileRoutesById {
   '/api/self-hosted/backups/delete': typeof ApiSelfHostedBackupsDeleteRoute
   '/api/self-hosted/backups/restore': typeof ApiSelfHostedBackupsRestoreRoute
   '/api/self-hosted/backups/schedule': typeof ApiSelfHostedBackupsScheduleRoute
+  '/api/self-hosted/backups/pitr': typeof ApiSelfHostedBackupsPitrRoute
   '/api/self-hosted/github/install-url': typeof ApiSelfHostedGithubInstallUrlRoute
   '/project/$ref/advisors/health': typeof ProjectRefAdvisorsHealthRoute
   '/project/$ref/advisors/performance': typeof ProjectRefAdvisorsPerformanceRoute
@@ -3581,6 +3591,7 @@ export interface FileRouteTypes {
     | '/api/self-hosted/backups/delete'
     | '/api/self-hosted/backups/restore'
     | '/api/self-hosted/backups/schedule'
+    | '/api/self-hosted/backups/pitr'
     | '/api/self-hosted/github/install-url'
     | '/project/$ref/advisors/health'
     | '/project/$ref/advisors/performance'
@@ -3930,6 +3941,7 @@ export interface FileRouteTypes {
     | '/api/self-hosted/backups/delete'
     | '/api/self-hosted/backups/restore'
     | '/api/self-hosted/backups/schedule'
+    | '/api/self-hosted/backups/pitr'
     | '/api/self-hosted/github/install-url'
     | '/project/$ref/advisors/health'
     | '/project/$ref/advisors/performance'
@@ -4289,6 +4301,7 @@ export interface FileRouteTypes {
     | '/api/self-hosted/backups/delete'
     | '/api/self-hosted/backups/restore'
     | '/api/self-hosted/backups/schedule'
+    | '/api/self-hosted/backups/pitr'
     | '/api/self-hosted/github/install-url'
     | '/project/$ref/advisors/health'
     | '/project/$ref/advisors/performance'
@@ -4599,6 +4612,7 @@ export interface RootRouteChildren {
   ApiSelfHostedBackupsDeleteRoute: typeof ApiSelfHostedBackupsDeleteRoute
   ApiSelfHostedBackupsRestoreRoute: typeof ApiSelfHostedBackupsRestoreRoute
   ApiSelfHostedBackupsScheduleRoute: typeof ApiSelfHostedBackupsScheduleRoute
+  ApiSelfHostedBackupsPitrRoute: typeof ApiSelfHostedBackupsPitrRoute
   ApiSelfHostedGithubInstallUrlRoute: typeof ApiSelfHostedGithubInstallUrlRoute
   ApiPlatformOrganizationsIndexRoute: typeof ApiPlatformOrganizationsIndexRoute
   ApiPlatformProfileIndexRoute: typeof ApiPlatformProfileIndexRoute
@@ -5564,6 +5578,13 @@ declare module '@tanstack/react-router' {
       path: '/api/self-hosted/backups/schedule'
       fullPath: '/api/self-hosted/backups/schedule'
       preLoaderRoute: typeof ApiSelfHostedBackupsScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/self-hosted/backups/pitr': {
+      id: '/api/self-hosted/backups/pitr'
+      path: '/api/self-hosted/backups/pitr'
+      fullPath: '/api/self-hosted/backups/pitr'
+      preLoaderRoute: typeof ApiSelfHostedBackupsPitrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/self-hosted/github/install-url': {
@@ -8047,6 +8068,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSelfHostedBackupsDeleteRoute: ApiSelfHostedBackupsDeleteRoute,
   ApiSelfHostedBackupsRestoreRoute: ApiSelfHostedBackupsRestoreRoute,
   ApiSelfHostedBackupsScheduleRoute: ApiSelfHostedBackupsScheduleRoute,
+  ApiSelfHostedBackupsPitrRoute: ApiSelfHostedBackupsPitrRoute,
   ApiSelfHostedGithubInstallUrlRoute: ApiSelfHostedGithubInstallUrlRoute,
   ApiPlatformOrganizationsIndexRoute: ApiPlatformOrganizationsIndexRoute,
   ApiPlatformProfileIndexRoute: ApiPlatformProfileIndexRoute,
