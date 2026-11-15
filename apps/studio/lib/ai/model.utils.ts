@@ -101,6 +101,14 @@ export function isKnownAssistantModelId(id: string): id is AssistantModelId {
   return Object.hasOwn(ASSISTANT_MODELS_MAP, id)
 }
 
+/**
+ * A model id of an OpenAI-compatible proxy (provider/model, e.g. "openai/gpt-oss-120b"), as the
+ * StackBlaze platform's AI proxy lists them. Studio's own ids never contain a slash.
+ */
+export function isProxyModelId(id: string): boolean {
+  return /^[A-Za-z0-9._-]+\/[A-Za-z0-9._:-]+$/.test(id)
+}
+
 export function isAssistantBaseModelId(id: string): id is AssistantBaseModelId {
   return (
     id in ASSISTANT_MODELS_MAP &&

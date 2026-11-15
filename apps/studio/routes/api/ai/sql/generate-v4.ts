@@ -29,9 +29,11 @@ import {
   isKnownAssistantModelId,
   type AssistantModelId,
 } from '@/lib/ai/model.utils'
+import { aiErrorMessage, proxyErrorResponse, stackblazeAiConfig } from '@/lib/ai/stackblaze-proxy'
 import { getTools } from '@/lib/ai/tools'
 import { encodeNotebookToolError } from '@/lib/ai/tools/notebook-tool-error'
 import { apiWrapper } from '@/lib/api/apiWrapper'
+import { getProjectAiOptInLevel } from '@/lib/api/self-hosted/ai-settings'
 import { executeQuery } from '@/lib/api/self-hosted/query'
 import { getBasePathURL } from '@/lib/helpers'
 import { trustedUserEmail } from '@/lib/server/configcat'
@@ -98,6 +100,9 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
 
   const requestedModel: AssistantModelId | undefined =
     rawRequestedModel && isKnownAssistantModelId(rawRequestedModel) ? rawRequestedModel : undefined
+  // Self-hosted on the StackBlaze platform the picker offers the AI proxy's own model ids.
+  const proxyModelId =
+    rawRequestedModel && !requestedModel && stackblazeAiConfig() ? rawRequestedModel : undefined
 
   const messagesValidation = await safeValidateUIMessages({
     messages: rawMessages,
@@ -122,7 +127,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
   let projectRegion: string | undefined
 
   if (!IS_PLATFORM) {
-    aiOptInLevel = 'schema'
+    // Self-hosted: this project's AI data setting (Project Settings → AI), read per request.
+    aiOptInLevel = await getProjectAiOptInLevel()
     hasAccessToAdvanceModel = true
   }
 
@@ -160,9 +166,13 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
   } = await getModel({
     provider: 'openai',
     modelEntry: getAssistantModelEntry(effectiveModel),
+    proxyModelId,
   })
 
   if (modelError) {
+    // The Assistant shows a failed request's body as is: send the AI proxy's message as text.
+    const proxied = proxyErrorResponse(modelError)
+    if (proxied) return res.status(proxied.status).send(proxied.message)
     return res.status(500).json({ error: modelError.message })
   }
 
@@ -260,7 +270,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
         }
 
         if (error instanceof Error) {
-          return error.message
+          // The provider's own message; out of credits on StackBlaze adds a billing link.
+          return aiErrorMessage(error)
         }
 
         return JSON.stringify(error)

@@ -1,9 +1,11 @@
 import { untrustedSql } from '@supabase/pg-meta'
+import { IS_PLATFORM } from 'common'
 
 import { getAuthHeaders } from './auth-headers'
 import { capReadQuery } from './cap-read-query'
 import { contract } from './execute-sql'
 import { approvalGatedToolFromContract } from './tool-from-contract'
+import { selfHostedFetcher } from './tool-sql.server'
 import type { ApprovalGatedToolFactory } from './types'
 import { DEFAULT_CELL_ROW_LIMIT } from '@/components/interfaces/Explorer/QueryCell/QueryCell.utils'
 import { unguarded } from '@/data/fetchers'
@@ -32,7 +34,11 @@ export const createTool: ApprovalGatedToolFactory<typeof contract> = (ctx) => {
           grant: unguarded.migrating,
         },
         abortSignal,
-        authHeaders
+        authHeaders,
+        // Off platform the default fetcher posts to a relative /api URL that does not resolve on
+        // the server, so approved SQL never ran; use the self-hosted query path like the other
+        // server tools (runPgMetaQuery).
+        IS_PLATFORM ? undefined : selfHostedFetcher
       ).catch((error: unknown) => {
         if (!isOptInLevelAtLeast(aiOptInLevel, 'schema_and_log_and_data')) hideSpanErrorFromTrace()
         throw error

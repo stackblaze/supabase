@@ -10,7 +10,7 @@ import {
   createAssistantMessageWithUpdateNotebookTool,
   createLongConversation,
 } from '../test-fixtures'
-import { NO_DATA_PERMISSIONS } from './execute-sql-output'
+import { noDataPermissionsMessage } from './execute-sql-output'
 import { INVALID_NOTEBOOK_RUN_OUTPUT_MESSAGE, type NotebookRunOutput } from './notebook-run-output'
 import { sanitizeMessagePart } from './tool-sanitizer'
 import type { AiOptInLevel } from '@/hooks/misc/useOrgOptedIntoAi'
@@ -108,7 +108,7 @@ describe('messages are sanitized based on opt-in level', () => {
   test.each(['disabled', 'schema', 'schema_and_log'] as const)(
     'execute_sql rows are hidden at %s level',
     (level) => {
-      expect(sanitizeExecuteSqlConversation(level)).toMatch(NO_DATA_PERMISSIONS)
+      expect(sanitizeExecuteSqlConversation(level)).toMatch(noDataPermissionsMessage())
     }
   )
 
@@ -140,7 +140,7 @@ describe('messages are sanitized based on opt-in level', () => {
     parts.forEach((part) => {
       if (part.type.startsWith('tool')) {
         const tool = part as ToolUIPart
-        expect(tool.output).toMatch(NO_DATA_PERMISSIONS)
+        expect(tool.output).toMatch(noDataPermissionsMessage())
       }
     })
   })
@@ -169,7 +169,7 @@ describe('messages are sanitized based on opt-in level', () => {
         parts.forEach((part) => {
           if (part.type.startsWith('tool')) {
             const tool = part as ToolUIPart
-            expect(tool.output).toMatch(NO_DATA_PERMISSIONS)
+            expect(tool.output).toMatch(noDataPermissionsMessage())
           }
         })
       }
@@ -208,8 +208,8 @@ describe('execute_sql rows are shared only up to the level they ran under', () =
   const rows = [{ email: 'test@example.com' }]
 
   test.each([
-    ['schema', 'schema_and_log_and_data', NO_DATA_PERMISSIONS],
-    ['schema_and_log_and_data', 'schema', NO_DATA_PERMISSIONS],
+    ['schema', 'schema_and_log_and_data', noDataPermissionsMessage()],
+    ['schema_and_log_and_data', 'schema', noDataPermissionsMessage()],
     ['schema_and_log_and_data', 'schema_and_log_and_data', rows],
   ] as const)('stamp %s, current %s', (stamp, current, expected) => {
     const part = executeSqlPart({ rows, optInLevel: stamp })
@@ -238,7 +238,7 @@ describe('execute_sql rows are shared only up to the level they ran under', () =
   test('output saved before the stamp existed stays hidden', () => {
     const part = executeSqlPart(rows)
     expect((sanitizeMessagePart(part, 'schema_and_log_and_data') as ToolUIPart).output).toBe(
-      NO_DATA_PERMISSIONS
+      noDataPermissionsMessage()
     )
   })
 

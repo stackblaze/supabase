@@ -16,17 +16,81 @@ import {
   TooltipTrigger,
 } from 'ui'
 
+import { useAiModelsQuery } from '@/data/ai/ai-models-query'
 import { useCheckEntitlements } from '@/hooks/misc/useCheckEntitlements'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { ASSISTANT_MODELS, isAdvanceOnlyModelId } from '@/lib/ai/model.utils'
 import type { AssistantModelId } from '@/lib/ai/model.utils'
+import type { AssistantModel } from '@/state/ai-assistant-state'
 
 interface ModelSelectorProps {
-  selectedModel: AssistantModelId
-  onSelectModel: (model: AssistantModelId) => void
+  selectedModel: AssistantModel
+  onSelectModel: (model: AssistantModel) => void
 }
 
 export const ModelSelector = ({ selectedModel, onSelectModel }: ModelSelectorProps) => {
+  // Self-hosted on the StackBlaze platform: the AI proxy's models, read at runtime.
+  const { data: aiModels } = useAiModelsQuery()
+  if (aiModels?.provider === 'stackblaze' && aiModels.models.length > 0) {
+    return (
+      <ProxyModelSelector
+        models={aiModels.models}
+        defaultModel={aiModels.defaultModel ?? aiModels.models[0]}
+        selectedModel={selectedModel}
+        onSelectModel={onSelectModel}
+      />
+    )
+  }
+  return <StudioModelSelector selectedModel={selectedModel} onSelectModel={onSelectModel} />
+}
+
+const ProxyModelSelector = ({
+  models,
+  defaultModel,
+  selectedModel,
+  onSelectModel,
+}: ModelSelectorProps & { models: string[]; defaultModel: string }) => {
+  const [open, setOpen] = useState(false)
+  // A Studio model id (or one the proxy no longer offers) runs on the proxy's default model.
+  const current = models.includes(selectedModel) ? selectedModel : defaultModel
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          className="text-foreground-light"
+          iconRight={<ChevronsUpDownIcon strokeWidth={1} size={12} />}
+        >
+          {current}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-64" align="start" side="top">
+        <Command>
+          <CommandList>
+            <CommandGroup heading="StackBlaze AI">
+              {models.map((id) => (
+                <CommandItem
+                  key={id}
+                  value={id}
+                  onSelect={() => {
+                    onSelectModel(id)
+                    setOpen(false)
+                  }}
+                  className="flex justify-between"
+                >
+                  <span>{id}</span>
+                  {current === id && <CheckIcon className="h-3.5 w-3.5" />}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+const StudioModelSelector = ({ selectedModel, onSelectModel }: ModelSelectorProps) => {
   const router = useRouter()
   const { data: organization } = useSelectedOrganizationQuery()
   const { hasAccess: hasAccessToAdvanceModel, isLoading: isLoadingEntitlements } =

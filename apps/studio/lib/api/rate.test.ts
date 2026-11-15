@@ -6,6 +6,11 @@ import { sanitizeMessagePart } from '../ai/tools/tool-sanitizer'
 import { Route } from '@/routes/api/ai/feedback/rate'
 import { getRouteHandler } from '@/tests/lib/server-route'
 
+// Self-hosted reads the project's AI data setting from its database; these tests use the default.
+vi.mock('@/lib/api/self-hosted/ai-settings', () => ({
+  getProjectAiOptInLevel: vi.fn().mockResolvedValue('schema'),
+}))
+
 vi.mock('../ai/tools/tool-sanitizer', () => ({
   sanitizeMessagePart: vi.fn((part) => part),
 }))

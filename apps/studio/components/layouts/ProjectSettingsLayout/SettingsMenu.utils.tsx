@@ -67,6 +67,13 @@ export const useGenerateSettingsMenu = () => {
             url: `/project/${ref}/settings/studio-access`,
             items: [],
           },
+          // What the AI model may see of this project (self-hosted has no organization settings).
+          {
+            name: 'AI',
+            key: 'ai',
+            url: `/project/${ref}/settings/ai`,
+            items: [],
+          },
           // GitHub connection for branching, offered by the hosting platform per deployment.
           ...(project?.is_branch_enabled
             ? [

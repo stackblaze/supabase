@@ -8,7 +8,7 @@ import { ButtonTooltip } from '../ButtonTooltip'
 import { formatAttachedSnippets } from './AIAssistant.utils'
 import { ModelSelector } from './ModelSelector'
 import { SnippetRow } from './SnippetRow'
-import type { AssistantModelId } from '@/lib/ai/model.utils'
+import type { AssistantModel } from '@/state/ai-assistant-state'
 import { type SqlSnippet } from '@/state/ai-assistant-state'
 
 export interface FormProps {
@@ -47,9 +47,9 @@ export interface FormProps {
   /* If currently editing an existing message */
   isEditing?: boolean
   /* The currently selected AI model */
-  selectedModel?: AssistantModelId
+  selectedModel?: AssistantModel
   /* Callback when a model is chosen */
-  onSelectModel?: (model: AssistantModelId) => void
+  onSelectModel?: (model: AssistantModel) => void
   /* Icon for the submit button when not loading, defaults to an up arrow */
   submitIcon?: ReactNode
   /* Label for the submit button when not loading, used for both aria-label and tooltip text, defaults to "Send message" */

@@ -20,7 +20,7 @@ import { constructHeaders } from '@/data/fetchers'
 import { getQueryClient } from '@/data/query-client'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { prepareMessagesForAPI } from '@/lib/ai/message-utils'
-import { isKnownAssistantModelId } from '@/lib/ai/model.utils'
+import { isKnownAssistantModelId, isProxyModelId } from '@/lib/ai/model.utils'
 import type { AssistantModelId } from '@/lib/ai/model.utils'
 import {
   applyNotebookCacheEffects,
@@ -44,7 +44,11 @@ export type AssistantMessageType = MessageType
  */
 export type SqlSnippet = string | { label: string; content: string; source?: SqlSnippetSource }
 
-export type AssistantModel = AssistantModelId
+/**
+ * One of Studio's own model ids, or (self-hosted on the StackBlaze platform) a model id the AI
+ * proxy lists. The server checks it either way.
+ */
+export type AssistantModel = AssistantModelId | (string & {})
 
 export type SupportChatMetadata = {
   subject: string
@@ -667,7 +671,7 @@ export const createAiAssistantState = (): AiAssistantState => {
       state.activeChatId = persistedState.activeChatId
       const storedModel = persistedState.model
       state.model =
-        storedModel && isKnownAssistantModelId(storedModel)
+        storedModel && (isKnownAssistantModelId(storedModel) || isProxyModelId(storedModel))
           ? storedModel
           : createInitialAiAssistantData().model
 

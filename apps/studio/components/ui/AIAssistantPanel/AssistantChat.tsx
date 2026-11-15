@@ -45,6 +45,7 @@ import {
 } from '@/lib/ai/assistant-message-metadata'
 import { ASSISTANT_TIMEOUT_MESSAGE } from '@/lib/ai/assistant-timeout'
 import { getParallelApprovalIdsToReject } from '@/lib/ai/message-utils'
+import { billingUrlFromAiError } from '@/lib/ai/stackblaze-errors'
 import { IS_PLATFORM } from '@/lib/constants'
 import { uuidv4 } from '@/lib/helpers'
 import { useTrack } from '@/lib/telemetry/track'
@@ -305,6 +306,8 @@ export const AssistantChat = ({
   let displayError = IS_PLATFORM ? ASSISTANT_ERRORS['default'] : error
   if (isContextExceededError) displayError = ASSISTANT_ERRORS['context-exceeded']
   if (isTimedOut) displayError = { message: ASSISTANT_TIMEOUT_MESSAGE }
+  // Self-hosted on StackBlaze: out of AI credits, the proxy's message ends with the billing link.
+  const creditsUrl = IS_PLATFORM ? undefined : billingUrlFromAiError(error?.message)
 
   const editedMessageIndex = editingMessageId
     ? chatMessages.findIndex((message) => message.id === editingMessageId)
@@ -612,6 +615,13 @@ export const AssistantChat = ({
                           </Button>
                         ) : (
                           <>
+                            {creditsUrl && (
+                              <Button asChild size="tiny" variant="primary" className="text-xs">
+                                <a href={creditsUrl} target="_blank" rel="noreferrer">
+                                  Add credits
+                                </a>
+                              </Button>
+                            )}
                             <Button size="tiny" onClick={() => regenerate()} className="text-xs">
                               Retry
                             </Button>

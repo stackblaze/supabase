@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { toWebHandler } from '@/compat/next/api'
 import { getModel } from '@/lib/ai/model'
 import { DEFAULT_COMPLETION_MODEL } from '@/lib/ai/model.utils'
+import { proxyErrorResponse } from '@/lib/ai/stackblaze-proxy'
 import { apiWrapper } from '@/lib/api/apiWrapper'
 
 const titleSchema = z.object({
@@ -48,6 +49,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
     })
 
     if (modelError) {
+      const proxied = proxyErrorResponse(modelError)
+      if (proxied) return res.status(proxied.status).json({ error: proxied.message })
       return res.status(500).json({ error: modelError.message })
     }
 
@@ -65,6 +68,9 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
 
     return res.json(result.output)
   } catch (error) {
+    // The StackBlaze AI proxy's own message (e.g. out of credits), with its status.
+    const proxied = proxyErrorResponse(error)
+    if (proxied) return res.status(proxied.status).json({ error: proxied.message })
     if (error instanceof Error) {
       console.error(`AI title generation failed: ${error.message}`)
 

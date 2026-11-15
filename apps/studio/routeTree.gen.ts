@@ -62,12 +62,14 @@ import { Route as AppSupportLinkRouteImport } from './routes/_app/support/link'
 import { Route as AppSupportNewRouteImport } from './routes/_app/support/new'
 import { Route as AuthCliLoginRouteImport } from './routes/_auth/cli/login'
 import { Route as ApiAiDocsRouteImport } from './routes/api/ai/docs'
+import { Route as ApiAiModelsRouteImport } from './routes/api/ai/models'
 import { Route as ApiConnectIndexRouteImport } from './routes/api/connect/index'
 import { Route as ApiContentGraphqlRouteImport } from './routes/api/content/graphql'
 import { Route as ApiEdgeFunctionsTestRouteImport } from './routes/api/edge-functions/test'
 import { Route as ApiIntegrationsStripeSyncRouteImport } from './routes/api/integrations/stripe-sync'
 import { Route as ApiMcpIndexRouteImport } from './routes/api/mcp/index'
 import { Route as ApiPlatformDeploymentModeRouteImport } from './routes/api/platform/deployment-mode'
+import { Route as ApiSelfHostedAiSettingsRouteImport } from './routes/api/self-hosted/ai-settings'
 import { Route as ApiSelfHostedForgotPasswordRouteImport } from './routes/api/self-hosted/forgot-password'
 import { Route as ApiSelfHostedLoginRouteImport } from './routes/api/self-hosted/login'
 import { Route as ApiSelfHostedMagicLinkRouteImport } from './routes/api/self-hosted/magic-link'
@@ -214,6 +216,7 @@ import { Route as ProjectRefRealtimeInspectorRouteImport } from './routes/projec
 import { Route as ProjectRefRealtimePoliciesRouteImport } from './routes/project/$ref/realtime/policies'
 import { Route as ProjectRefRealtimeSettingsRouteImport } from './routes/project/$ref/realtime/settings'
 import { Route as ProjectRefSettingsAddonsRouteImport } from './routes/project/$ref/settings/addons'
+import { Route as ProjectRefSettingsAiRouteImport } from './routes/project/$ref/settings/ai'
 import { Route as ProjectRefSettingsApiRouteImport } from './routes/project/$ref/settings/api'
 import { Route as ProjectRefSettingsApiKeysRouteImport } from './routes/project/$ref/settings/api-keys'
 import { Route as ProjectRefSettingsCodeConfigurationRouteImport } from './routes/project/$ref/settings/code-configuration'
@@ -635,6 +638,11 @@ const ApiAiDocsRoute = ApiAiDocsRouteImport.update({
   path: '/api/ai/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiModelsRoute = ApiAiModelsRouteImport.update({
+  id: '/api/ai/models',
+  path: '/api/ai/models',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiConnectIndexRoute = ApiConnectIndexRouteImport.update({
   id: '/api/connect/',
   path: '/api/connect/',
@@ -667,6 +675,11 @@ const ApiPlatformDeploymentModeRoute =
     path: '/api/platform/deployment-mode',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiSelfHostedAiSettingsRoute = ApiSelfHostedAiSettingsRouteImport.update({
+  id: '/api/self-hosted/ai-settings',
+  path: '/api/self-hosted/ai-settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSelfHostedForgotPasswordRoute =
   ApiSelfHostedForgotPasswordRouteImport.update({
     id: '/api/self-hosted/forgot-password',
@@ -1467,6 +1480,11 @@ const ProjectRefSettingsAddonsRoute =
     path: '/addons',
     getParentRoute: () => ProjectRefSettingsRoute,
   } as any)
+const ProjectRefSettingsAiRoute = ProjectRefSettingsAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => ProjectRefSettingsRoute,
+} as any)
 const ProjectRefSettingsApiRoute = ProjectRefSettingsApiRouteImport.update({
   id: '/api',
   path: '/api',
@@ -2424,10 +2442,12 @@ export interface FileRoutesByFullPath {
   '/support/new': typeof AppSupportNewRoute
   '/cli/login': typeof AuthCliLoginRoute
   '/api/ai/docs': typeof ApiAiDocsRoute
+  '/api/ai/models': typeof ApiAiModelsRoute
   '/api/content/graphql': typeof ApiContentGraphqlRoute
   '/api/edge-functions/test': typeof ApiEdgeFunctionsTestRoute
   '/api/integrations/stripe-sync': typeof ApiIntegrationsStripeSyncRoute
   '/api/platform/deployment-mode': typeof ApiPlatformDeploymentModeRoute
+  '/api/self-hosted/ai-settings': typeof ApiSelfHostedAiSettingsRoute
   '/api/self-hosted/forgot-password': typeof ApiSelfHostedForgotPasswordRoute
   '/api/self-hosted/login': typeof ApiSelfHostedLoginRoute
   '/api/self-hosted/magic-link': typeof ApiSelfHostedMagicLinkRoute
@@ -2561,6 +2581,7 @@ export interface FileRoutesByFullPath {
   '/project/$ref/realtime/policies': typeof ProjectRefRealtimePoliciesRoute
   '/project/$ref/realtime/settings': typeof ProjectRefRealtimeSettingsRoute
   '/project/$ref/settings/addons': typeof ProjectRefSettingsAddonsRoute
+  '/project/$ref/settings/ai': typeof ProjectRefSettingsAiRoute
   '/project/$ref/settings/api': typeof ProjectRefSettingsApiRoute
   '/project/$ref/settings/api-keys': typeof ProjectRefSettingsApiKeysRouteWithChildren
   '/project/$ref/settings/code-configuration': typeof ProjectRefSettingsCodeConfigurationRoute
@@ -2780,10 +2801,12 @@ export interface FileRoutesByTo {
   '/support/new': typeof AppSupportNewRoute
   '/cli/login': typeof AuthCliLoginRoute
   '/api/ai/docs': typeof ApiAiDocsRoute
+  '/api/ai/models': typeof ApiAiModelsRoute
   '/api/content/graphql': typeof ApiContentGraphqlRoute
   '/api/edge-functions/test': typeof ApiEdgeFunctionsTestRoute
   '/api/integrations/stripe-sync': typeof ApiIntegrationsStripeSyncRoute
   '/api/platform/deployment-mode': typeof ApiPlatformDeploymentModeRoute
+  '/api/self-hosted/ai-settings': typeof ApiSelfHostedAiSettingsRoute
   '/api/self-hosted/forgot-password': typeof ApiSelfHostedForgotPasswordRoute
   '/api/self-hosted/login': typeof ApiSelfHostedLoginRoute
   '/api/self-hosted/magic-link': typeof ApiSelfHostedMagicLinkRoute
@@ -2904,6 +2927,7 @@ export interface FileRoutesByTo {
   '/project/$ref/realtime/policies': typeof ProjectRefRealtimePoliciesRoute
   '/project/$ref/realtime/settings': typeof ProjectRefRealtimeSettingsRoute
   '/project/$ref/settings/addons': typeof ProjectRefSettingsAddonsRoute
+  '/project/$ref/settings/ai': typeof ProjectRefSettingsAiRoute
   '/project/$ref/settings/api': typeof ProjectRefSettingsApiRoute
   '/project/$ref/settings/code-configuration': typeof ProjectRefSettingsCodeConfigurationRoute
   '/project/$ref/settings/dashboard': typeof ProjectRefSettingsDashboardRoute
@@ -3127,10 +3151,12 @@ export interface FileRoutesById {
   '/_app/support/new': typeof AppSupportNewRoute
   '/_auth/cli/login': typeof AuthCliLoginRoute
   '/api/ai/docs': typeof ApiAiDocsRoute
+  '/api/ai/models': typeof ApiAiModelsRoute
   '/api/content/graphql': typeof ApiContentGraphqlRoute
   '/api/edge-functions/test': typeof ApiEdgeFunctionsTestRoute
   '/api/integrations/stripe-sync': typeof ApiIntegrationsStripeSyncRoute
   '/api/platform/deployment-mode': typeof ApiPlatformDeploymentModeRoute
+  '/api/self-hosted/ai-settings': typeof ApiSelfHostedAiSettingsRoute
   '/api/self-hosted/forgot-password': typeof ApiSelfHostedForgotPasswordRoute
   '/api/self-hosted/login': typeof ApiSelfHostedLoginRoute
   '/api/self-hosted/magic-link': typeof ApiSelfHostedMagicLinkRoute
@@ -3264,6 +3290,7 @@ export interface FileRoutesById {
   '/project/$ref/realtime/policies': typeof ProjectRefRealtimePoliciesRoute
   '/project/$ref/realtime/settings': typeof ProjectRefRealtimeSettingsRoute
   '/project/$ref/settings/addons': typeof ProjectRefSettingsAddonsRoute
+  '/project/$ref/settings/ai': typeof ProjectRefSettingsAiRoute
   '/project/$ref/settings/api': typeof ProjectRefSettingsApiRoute
   '/project/$ref/settings/api-keys': typeof ProjectRefSettingsApiKeysRouteWithChildren
   '/project/$ref/settings/code-configuration': typeof ProjectRefSettingsCodeConfigurationRoute
@@ -3487,10 +3514,12 @@ export interface FileRouteTypes {
     | '/support/new'
     | '/cli/login'
     | '/api/ai/docs'
+    | '/api/ai/models'
     | '/api/content/graphql'
     | '/api/edge-functions/test'
     | '/api/integrations/stripe-sync'
     | '/api/platform/deployment-mode'
+    | '/api/self-hosted/ai-settings'
     | '/api/self-hosted/forgot-password'
     | '/api/self-hosted/login'
     | '/api/self-hosted/magic-link'
@@ -3624,6 +3653,7 @@ export interface FileRouteTypes {
     | '/project/$ref/realtime/policies'
     | '/project/$ref/realtime/settings'
     | '/project/$ref/settings/addons'
+    | '/project/$ref/settings/ai'
     | '/project/$ref/settings/api'
     | '/project/$ref/settings/api-keys'
     | '/project/$ref/settings/code-configuration'
@@ -3843,10 +3873,12 @@ export interface FileRouteTypes {
     | '/support/new'
     | '/cli/login'
     | '/api/ai/docs'
+    | '/api/ai/models'
     | '/api/content/graphql'
     | '/api/edge-functions/test'
     | '/api/integrations/stripe-sync'
     | '/api/platform/deployment-mode'
+    | '/api/self-hosted/ai-settings'
     | '/api/self-hosted/forgot-password'
     | '/api/self-hosted/login'
     | '/api/self-hosted/magic-link'
@@ -3967,6 +3999,7 @@ export interface FileRouteTypes {
     | '/project/$ref/realtime/policies'
     | '/project/$ref/realtime/settings'
     | '/project/$ref/settings/addons'
+    | '/project/$ref/settings/ai'
     | '/project/$ref/settings/api'
     | '/project/$ref/settings/code-configuration'
     | '/project/$ref/settings/dashboard'
@@ -4189,10 +4222,12 @@ export interface FileRouteTypes {
     | '/_app/support/new'
     | '/_auth/cli/login'
     | '/api/ai/docs'
+    | '/api/ai/models'
     | '/api/content/graphql'
     | '/api/edge-functions/test'
     | '/api/integrations/stripe-sync'
     | '/api/platform/deployment-mode'
+    | '/api/self-hosted/ai-settings'
     | '/api/self-hosted/forgot-password'
     | '/api/self-hosted/login'
     | '/api/self-hosted/magic-link'
@@ -4326,6 +4361,7 @@ export interface FileRouteTypes {
     | '/project/$ref/realtime/policies'
     | '/project/$ref/realtime/settings'
     | '/project/$ref/settings/addons'
+    | '/project/$ref/settings/ai'
     | '/project/$ref/settings/api'
     | '/project/$ref/settings/api-keys'
     | '/project/$ref/settings/code-configuration'
@@ -4531,10 +4567,12 @@ export interface RootRouteChildren {
   ProjectChar91_Char93Route: typeof ProjectChar91_Char93RouteWithChildren
   SupportCsatRoute: typeof SupportCsatRoute
   ApiAiDocsRoute: typeof ApiAiDocsRoute
+  ApiAiModelsRoute: typeof ApiAiModelsRoute
   ApiContentGraphqlRoute: typeof ApiContentGraphqlRoute
   ApiEdgeFunctionsTestRoute: typeof ApiEdgeFunctionsTestRoute
   ApiIntegrationsStripeSyncRoute: typeof ApiIntegrationsStripeSyncRoute
   ApiPlatformDeploymentModeRoute: typeof ApiPlatformDeploymentModeRoute
+  ApiSelfHostedAiSettingsRoute: typeof ApiSelfHostedAiSettingsRoute
   ApiSelfHostedForgotPasswordRoute: typeof ApiSelfHostedForgotPasswordRoute
   ApiSelfHostedLoginRoute: typeof ApiSelfHostedLoginRoute
   ApiSelfHostedMagicLinkRoute: typeof ApiSelfHostedMagicLinkRoute
@@ -5024,6 +5062,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiDocsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/models': {
+      id: '/api/ai/models'
+      path: '/api/ai/models'
+      fullPath: '/api/ai/models'
+      preLoaderRoute: typeof ApiAiModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/connect/': {
       id: '/api/connect/'
       path: '/api/connect'
@@ -5064,6 +5109,13 @@ declare module '@tanstack/react-router' {
       path: '/api/platform/deployment-mode'
       fullPath: '/api/platform/deployment-mode'
       preLoaderRoute: typeof ApiPlatformDeploymentModeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/self-hosted/ai-settings': {
+      id: '/api/self-hosted/ai-settings'
+      path: '/api/self-hosted/ai-settings'
+      fullPath: '/api/self-hosted/ai-settings'
+      preLoaderRoute: typeof ApiSelfHostedAiSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/self-hosted/forgot-password': {
@@ -6086,6 +6138,13 @@ declare module '@tanstack/react-router' {
       path: '/addons'
       fullPath: '/project/$ref/settings/addons'
       preLoaderRoute: typeof ProjectRefSettingsAddonsRouteImport
+      parentRoute: typeof ProjectRefSettingsRoute
+    }
+    '/project/$ref/settings/ai': {
+      id: '/project/$ref/settings/ai'
+      path: '/ai'
+      fullPath: '/project/$ref/settings/ai'
+      preLoaderRoute: typeof ProjectRefSettingsAiRouteImport
       parentRoute: typeof ProjectRefSettingsRoute
     }
     '/project/$ref/settings/api': {
@@ -7740,6 +7799,7 @@ const ProjectRefSettingsApiKeysRouteWithChildren =
 
 interface ProjectRefSettingsRouteChildren {
   ProjectRefSettingsAddonsRoute: typeof ProjectRefSettingsAddonsRoute
+  ProjectRefSettingsAiRoute: typeof ProjectRefSettingsAiRoute
   ProjectRefSettingsApiRoute: typeof ProjectRefSettingsApiRoute
   ProjectRefSettingsApiKeysRoute: typeof ProjectRefSettingsApiKeysRouteWithChildren
   ProjectRefSettingsCodeConfigurationRoute: typeof ProjectRefSettingsCodeConfigurationRoute
@@ -7759,6 +7819,7 @@ interface ProjectRefSettingsRouteChildren {
 
 const ProjectRefSettingsRouteChildren: ProjectRefSettingsRouteChildren = {
   ProjectRefSettingsAddonsRoute: ProjectRefSettingsAddonsRoute,
+  ProjectRefSettingsAiRoute: ProjectRefSettingsAiRoute,
   ProjectRefSettingsApiRoute: ProjectRefSettingsApiRoute,
   ProjectRefSettingsApiKeysRoute: ProjectRefSettingsApiKeysRouteWithChildren,
   ProjectRefSettingsCodeConfigurationRoute:
@@ -7954,10 +8015,12 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectChar91_Char93Route: ProjectChar91_Char93RouteWithChildren,
   SupportCsatRoute: SupportCsatRoute,
   ApiAiDocsRoute: ApiAiDocsRoute,
+  ApiAiModelsRoute: ApiAiModelsRoute,
   ApiContentGraphqlRoute: ApiContentGraphqlRoute,
   ApiEdgeFunctionsTestRoute: ApiEdgeFunctionsTestRoute,
   ApiIntegrationsStripeSyncRoute: ApiIntegrationsStripeSyncRoute,
   ApiPlatformDeploymentModeRoute: ApiPlatformDeploymentModeRoute,
+  ApiSelfHostedAiSettingsRoute: ApiSelfHostedAiSettingsRoute,
   ApiSelfHostedForgotPasswordRoute: ApiSelfHostedForgotPasswordRoute,
   ApiSelfHostedLoginRoute: ApiSelfHostedLoginRoute,
   ApiSelfHostedMagicLinkRoute: ApiSelfHostedMagicLinkRoute,

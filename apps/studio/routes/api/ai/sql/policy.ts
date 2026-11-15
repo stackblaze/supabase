@@ -13,9 +13,11 @@ import { isExplorerEnabled } from '@/lib/ai/is-explorer-enabled'
 import { getModel } from '@/lib/ai/model'
 import { DEFAULT_COMPLETION_MODEL } from '@/lib/ai/model.utils'
 import { RLS_PROMPT } from '@/lib/ai/prompts'
+import { proxyErrorResponse } from '@/lib/ai/stackblaze-proxy'
 import { withoutApprovalTools } from '@/lib/ai/tool-filter'
 import { getTools } from '@/lib/ai/tools'
 import { apiWrapper } from '@/lib/api/apiWrapper'
+import { getProjectAiOptInLevel } from '@/lib/api/self-hosted/ai-settings'
 import { trustedUserEmail } from '@/lib/server/configcat'
 
 const policySchema = z.object({
@@ -78,7 +80,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
   let aiOptInLevel: AiOptInLevel = 'disabled'
 
   if (!IS_PLATFORM) {
-    aiOptInLevel = 'schema'
+    // Self-hosted: this project's AI data setting (Project Settings → AI), read per request.
+    aiOptInLevel = await getProjectAiOptInLevel()
   }
 
   if (IS_PLATFORM && orgSlug && authorization && projectRef) {
@@ -102,6 +105,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
     })
 
     if (modelError) {
+      const proxied = proxyErrorResponse(modelError)
+      if (proxied) return res.status(proxied.status).json({ error: proxied.message })
       return res.status(500).json({ error: modelError.message })
     }
 
@@ -170,6 +175,9 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
       toolsAbortController.abort()
     }
   } catch (error) {
+    // The StackBlaze AI proxy's own message (e.g. out of credits), with its status.
+    const proxied = proxyErrorResponse(error)
+    if (proxied) return res.status(proxied.status).json({ error: proxied.message })
     if (error instanceof Error) {
       console.error(`AI policy generation failed: ${error.message}`)
       return res.status(500).json({

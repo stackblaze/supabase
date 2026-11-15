@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { useProjectAiSettingsQuery } from '@/data/ai/project-ai-settings-query'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { IS_PLATFORM, OPT_IN_TAGS } from '@/lib/constants'
 
@@ -35,7 +36,7 @@ export const getAiOptInLevel = (tags: string[] | undefined): AiOptInLevel => {
  */
 export function useOrgOptedIntoAi(): boolean {
   const { aiOptInLevel } = useOrgAiOptInLevel()
-  return !IS_PLATFORM || aiOptInLevel !== 'disabled'
+  return aiOptInLevel !== 'disabled'
 }
 
 /**
@@ -47,6 +48,8 @@ export function useOrgAiOptInLevel(): {
   includeSchemaMetadata: boolean
 } {
   const { data: selectedOrganization } = useSelectedOrganizationQuery()
+  // Self-hosted: the project's own AI data setting (Project Settings → AI); `schema` until known.
+  const { data: projectAiSettings } = useProjectAiSettingsQuery()
 
   // [Joshen] Default to disabled until migration to clean up existing opt in tags are completed
   // Once toggled on, then we can default to their set opt in level and clean up feature flag
@@ -54,9 +57,13 @@ export function useOrgAiOptInLevel(): {
   const level = getAiOptInLevel(optInTags)
   const isOptedIntoAI = level !== 'disabled'
 
-  // [Joshen] For CLI / self-host, we'd default to 'schema' as opt in level
-  const aiOptInLevel = !IS_PLATFORM ? 'schema' : isOptedIntoAI ? level : 'disabled'
-  const includeSchemaMetadata = !IS_PLATFORM || aiOptInLevel !== 'disabled'
+  // Self-hosted reads the project's setting, defaulting to 'schema' like upstream did
+  const aiOptInLevel: AiOptInLevel = !IS_PLATFORM
+    ? (projectAiSettings?.aiOptInLevel ?? 'schema')
+    : isOptedIntoAI
+      ? level
+      : 'disabled'
+  const includeSchemaMetadata = aiOptInLevel !== 'disabled'
 
   return { aiOptInLevel, includeSchemaMetadata }
 }

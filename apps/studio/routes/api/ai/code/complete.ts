@@ -25,7 +25,9 @@ import {
   SECURITY_PROMPT,
   SQL_COMPLETION_INSTRUCTIONS,
 } from '@/lib/ai/prompts'
+import { proxyErrorResponse } from '@/lib/ai/stackblaze-proxy'
 import { apiWrapper } from '@/lib/api/apiWrapper'
+import { getProjectAiOptInLevel } from '@/lib/api/self-hosted/ai-settings'
 import { executeQuery } from '@/lib/api/self-hosted/query'
 
 const pgMetaSchemasList = pgMeta.schemas.list()
@@ -188,7 +190,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const isClickhouse = dialect === 'clickhouse'
 
     const authorization = req.headers.authorization
-    let aiOptInLevel: AiOptInLevel = IS_PLATFORM ? 'disabled' : 'schema'
+    // Self-hosted: this project's AI data setting (Project Settings → AI), read per request.
+    let aiOptInLevel: AiOptInLevel = IS_PLATFORM ? 'disabled' : await getProjectAiOptInLevel()
 
     if (IS_PLATFORM && orgSlug && authorization && projectRef) {
       const aiDetails = await getAIDetails({ orgSlug, projectRef, authorization })
@@ -205,6 +208,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     })
 
     if (modelError) {
+      const proxied = proxyErrorResponse(modelError)
+      if (proxied) return res.status(proxied.status).json({ error: proxied.message })
       return res.status(500).json({ error: modelError.message })
     }
 
@@ -349,6 +354,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     return res.status(200).json(text)
   } catch (error) {
+    // The StackBlaze AI proxy's own message (e.g. out of credits), with its status.
+    const proxied = proxyErrorResponse(error)
+    if (proxied) return res.status(proxied.status).json({ error: proxied.message })
     console.error('Completion error:', error)
     return res.status(500).json({ error: 'Failed to generate completion' })
   }
