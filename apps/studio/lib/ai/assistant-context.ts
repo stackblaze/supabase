@@ -3,6 +3,7 @@ import {
   buildClickhouseLogsSchemaSection,
   CLICKHOUSE_LOGS_COMPLETION_INSTRUCTIONS,
 } from '@/lib/ai/clickhouse-logs'
+import { IS_PLATFORM } from '@/lib/constants'
 
 /**
  * Stands in for the schema list when the org hasn't opted into sharing schemas.
@@ -73,7 +74,9 @@ export function buildAssistantContextMessages({
   if (aiOptInLevel) {
     messages.push({
       role: 'assistant',
-      content: `The organization's AI opt-in level is ${aiOptInLevel}.`,
+      content: IS_PLATFORM
+        ? `The organization's AI opt-in level is ${aiOptInLevel}.`
+        : `This project's AI data setting is ${aiOptInLevel}.`,
     })
   }
 

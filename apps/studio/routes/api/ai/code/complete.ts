@@ -27,6 +27,7 @@ import {
 } from '@/lib/ai/prompts'
 import { proxyErrorResponse } from '@/lib/ai/stackblaze-proxy'
 import { apiWrapper } from '@/lib/api/apiWrapper'
+import { getProjectAiOptInLevel } from '@/lib/api/self-hosted/ai-settings'
 import { executeQuery } from '@/lib/api/self-hosted/query'
 
 const pgMetaSchemasList = pgMeta.schemas.list()
@@ -189,7 +190,8 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const isClickhouse = dialect === 'clickhouse'
 
     const authorization = req.headers.authorization
-    let aiOptInLevel: AiOptInLevel = IS_PLATFORM ? 'disabled' : 'schema'
+    // Self-hosted: this project's AI data setting (Project Settings → AI), read per request.
+    let aiOptInLevel: AiOptInLevel = IS_PLATFORM ? 'disabled' : await getProjectAiOptInLevel()
 
     if (IS_PLATFORM && orgSlug && authorization && projectRef) {
       const aiDetails = await getAIDetails({ orgSlug, projectRef, authorization })

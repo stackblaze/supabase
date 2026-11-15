@@ -29,6 +29,7 @@ import { MessagePartQueryLogs } from './MessagePartQueryLogs'
 import { NotebookProposalRenderer, type NotebookProposalMode } from './NotebookProposalRenderer'
 import { NotebookRunRenderer } from './NotebookRunRenderer'
 import { OptInRequest } from './OptInRequest'
+import { SelfHostedDataHint } from './SelfHostedDataHint'
 import { parseSupportRequestMessage, SupportRequestMessage } from './SupportRequestMessage'
 import { useMinimumDisplayTime } from '@/hooks/misc/useMinimumDisplayTime'
 import { contract as deployEdgeFunctionContract } from '@/lib/ai/tools/deploy-edge-function'
@@ -144,6 +145,7 @@ function MessagePartExecuteSql({ toolPart }: { toolPart: ToolUIPart }) {
           onApprove={onApprove}
           onDeny={onDeny}
         />
+        {state === 'output-available' && <SelfHostedDataHint output={output} />}
       </div>
     )
   }

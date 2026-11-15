@@ -10,7 +10,7 @@ import { selfHostedFetcher } from './tool-sql.server'
 import type { ToolContext } from './types'
 import { unguarded } from '@/data/fetchers'
 import { executeSql } from '@/data/sql/execute-sql-mutation'
-import { NO_DATA_PERMISSIONS } from '@/lib/ai/tools/execute-sql-output'
+import { noDataPermissionsMessage } from '@/lib/ai/tools/execute-sql-output'
 
 const createStudioTools = (ctx: ToolContext) => ({
   execute_sql: createExecuteSqlTool(ctx),
@@ -154,7 +154,7 @@ describe('ai/tools core tools', () => {
       expect(result).toEqual({ rows, totalRows: 1, optInLevel: 'schema' })
       expect((tools.execute_sql as any).toModelOutput({ output: result })).toEqual({
         type: 'json',
-        value: NO_DATA_PERMISSIONS,
+        value: noDataPermissionsMessage(),
       })
     })
 

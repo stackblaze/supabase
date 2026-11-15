@@ -33,6 +33,7 @@ import { aiErrorMessage, proxyErrorResponse, stackblazeAiConfig } from '@/lib/ai
 import { getTools } from '@/lib/ai/tools'
 import { encodeNotebookToolError } from '@/lib/ai/tools/notebook-tool-error'
 import { apiWrapper } from '@/lib/api/apiWrapper'
+import { getProjectAiOptInLevel } from '@/lib/api/self-hosted/ai-settings'
 import { executeQuery } from '@/lib/api/self-hosted/query'
 import { getBasePathURL } from '@/lib/helpers'
 import { trustedUserEmail } from '@/lib/server/configcat'
@@ -126,7 +127,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
   let projectRegion: string | undefined
 
   if (!IS_PLATFORM) {
-    aiOptInLevel = 'schema'
+    // Self-hosted: this project's AI data setting (Project Settings → AI), read per request.
+    aiOptInLevel = await getProjectAiOptInLevel()
     hasAccessToAdvanceModel = true
   }
 

@@ -14,6 +14,7 @@ import { getModel } from '@/lib/ai/model'
 import { DEFAULT_COMPLETION_MODEL } from '@/lib/ai/model.utils'
 import { sanitizeMessagePart } from '@/lib/ai/tools/tool-sanitizer'
 import { apiWrapper } from '@/lib/api/apiWrapper'
+import { getProjectAiOptInLevel } from '@/lib/api/self-hosted/ai-settings'
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req
@@ -58,7 +59,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse) {
   let orgId: number | undefined
 
   if (!IS_PLATFORM) {
-    aiOptInLevel = 'schema'
+    // Self-hosted: this project's AI data setting (Project Settings → AI), read per request.
+    aiOptInLevel = await getProjectAiOptInLevel()
   }
 
   if (IS_PLATFORM && orgSlug && authorization && projectRef) {

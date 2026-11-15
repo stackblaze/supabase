@@ -17,6 +17,7 @@ import { proxyErrorResponse } from '@/lib/ai/stackblaze-proxy'
 import { withoutApprovalTools } from '@/lib/ai/tool-filter'
 import { getTools } from '@/lib/ai/tools'
 import { apiWrapper } from '@/lib/api/apiWrapper'
+import { getProjectAiOptInLevel } from '@/lib/api/self-hosted/ai-settings'
 import { trustedUserEmail } from '@/lib/server/configcat'
 
 const policySchema = z.object({
@@ -79,7 +80,8 @@ async function handlePost(req: NextApiRequest, res: NextApiResponse, claims?: Jw
   let aiOptInLevel: AiOptInLevel = 'disabled'
 
   if (!IS_PLATFORM) {
-    aiOptInLevel = 'schema'
+    // Self-hosted: this project's AI data setting (Project Settings → AI), read per request.
+    aiOptInLevel = await getProjectAiOptInLevel()
   }
 
   if (IS_PLATFORM && orgSlug && authorization && projectRef) {
