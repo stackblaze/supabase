@@ -139,7 +139,7 @@ export const PlatformPitr = () => {
           {finished && (
             <Button
               className="mt-2"
-              type="default"
+              variant="default"
               onClick={() => {
                 clearPendingPitr()
                 setPending(undefined)
@@ -198,7 +198,7 @@ export const PlatformPitr = () => {
                   {st.retentionChoices.map((d) => (
                     <Button
                       key={d}
-                      type={d === retentionValue ? 'primary' : 'default'}
+                      variant={d === retentionValue ? 'primary' : 'default'}
                       disabled={save.isPending || !st.available}
                       onClick={() => {
                         setRetention(d)
@@ -253,7 +253,7 @@ export const PlatformPitr = () => {
               </Admonition>
             ) : !picking ? (
               <Button
-                type="default"
+                variant="default"
                 disabled={!!running && !finished}
                 onClick={() => setPicking(true)}
               >
